@@ -8,8 +8,8 @@ import shutil
 file_name = "newMovie/goto/goto9"
 cap = cv2.VideoCapture(file_name + ".mp4")
 #cap = cv2.VideoCapture(0)
-face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_alt2.xml')
-face_parts_detector = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
+face_cascade = cv2.CascadeClassifier('classification_tool/haarcascade_frontalface_alt2.xml')
+face_parts_detector = dlib.shape_predictor('classification_tool/shape_predictor_68_face_landmarks.dat')
 blink_count = 0
 close_bool = False
 right_t_provisional = 0.240
@@ -101,20 +101,6 @@ while True:
                 cv2.putText(rgb, "blink", (10, 180), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 255), 3, 1)
 
             COUNTER = 0
-        # if (left_eye_ear + right_eye_ear)/2 < 0.3:
-        #     COUNTER += 1
-        #     #close_bool = True
-        #     if TOTAL == 0:
-        #         os.mkdir(file_name)
-        #
-        #     cv2.imwrite(file_name + '/{}.{}'.format(str(blink_count), 'png'), rgb)
-        #
-        #     cv2.putText(rgb,"Sleepy eyes. Wake up!",
-        #         (10,180), cv2.FONT_HERSHEY_PLAIN, 3, (0,0,255), 3, 1)
-        # else:
-        #     if close_bool == True:
-        #         blink_count += 1
-        #         close_bool = False
 
     fps = cv2.getTickFrequency() / (cv2.getTickCount() - tick)
     cv2.putText(rgb, "FPS:{} ".format(int(fps)),
