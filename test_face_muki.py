@@ -6,8 +6,8 @@ import dlib
 import cv2
 from scipy.spatial import distance
 
-right_t_provisional = 0.220
-left_t_provisional = 0.231
+right_t_provisional = 0.210
+left_t_provisional = 0.210
 right_t = right_t_provisional - 0.05
 left_t = left_t_provisional - 0.05
 EYE_AR_THRESH = (right_t_provisional + left_t_provisional) / 2
@@ -30,7 +30,7 @@ face_cascade = cv2.CascadeClassifier('classification_tool/haarcascade_frontalfac
 # initialize the video stream and allow the cammera sensor to warmup
 print("[INFO] camera sensor warming up...")
 # vs = VideoStream(usePiCamera=args["picamera"] > 0).start()
-#cap = cv2.VideoCapture('movie/takahata/testRetakahata1.mp4')
+#cap = cv2.VideoCapture('movie/blink_data_/nedati/omosiro.mp4')
 cap = cv2.VideoCapture(0)
 
 def calc_ear(eye):
@@ -50,12 +50,20 @@ def eye_marker(face_mat, position):
 while True:
     frame_cnt += 1
     ret, frame = cap.read()
+
     # frame = imutils.resize(frame, width=500)
     try:
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     except:
         break
+
+    faces = face_cascade.detectMultiScale(
+        gray, scaleFactor=1.11, minNeighbors=3, minSize=(100, 100))
     rects = detector(gray, 0)
+    if len(rects) == 0:
+        cnt_looking_away += 1
+        cv2.putText(frame, "away", (10, 195), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 255), 3, 1)
+
 
     image_points = None
 
@@ -71,17 +79,29 @@ while True:
 
         image_points = np.array([tuple(shape[30]), tuple(shape[8]), tuple(shape[36]), tuple(shape[45]),
                                  tuple(shape[48]), tuple(shape[54])], dtype='double')
-        left_eye = shape[42:48]
-        eye_marker(frame, left_eye)
 
-        left_eye_ear = calc_ear(left_eye)
-        print(left_eye_ear)
+        if len(faces) == 1:
+            x, y, w, h = faces[0, :]
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+            face_gray = gray[y:(y + h), x:(x + w)]
+            scale = 480 / h
+            face_gray_resized = cv2.resize(face_gray, dsize=None, fx=scale, fy=scale)
 
-        right_eye = shape[36:42]
-        eye_marker(frame, right_eye)
+            face = dlib.rectangle(0, 0, face_gray_resized.shape[1], face_gray_resized.shape[0])
+            face_parts = predictor(face_gray_resized, face)
+            face_parts = face_utils.shape_to_np(face_parts)
 
-        right_eye_ear = calc_ear(right_eye)
-        print(right_eye_ear)
+            left_eye = face_parts[42:48]
+            eye_marker(face_gray_resized, left_eye)
+
+            left_eye_ear = calc_ear(left_eye)
+            print(left_eye_ear)
+
+            right_eye = face_parts[36:42]
+            eye_marker(face_gray_resized, right_eye)
+
+            right_eye_ear = calc_ear(right_eye)
+            print(right_eye_ear)
 
         # if len(rects) > 0:
         # # cv2.putText(frame, "detected", (10, 30), cv2.FONT_HERSHEY_PLAIN, 0.7, (0, 0, 255), 2)
@@ -123,7 +143,8 @@ while True:
         pitch = eulerAngles[0]
         # 顔の回転 10で判定
         roll = eulerAngles[2]
-        if abs(yaw) >= 17 or pitch >= 170 or pitch<=156 or abs(roll)>=10:
+
+        if abs(yaw) >= 17 or pitch >= 180 or pitch<=156 or abs(roll)>=10:
             cnt_looking_away += 1
             cv2.putText(frame, "away", (10, 195), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 255), 3, 1)
 
