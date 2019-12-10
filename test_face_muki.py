@@ -7,7 +7,91 @@ import cv2
 from scipy.spatial import distance
 import json
 import pathlib
+#from . import eye_open_check
+import math
 
+
+def eye_open(file_name):
+
+    cap = cv2.VideoCapture(file_name)
+    face_cascade = cv2.CascadeClassifier('classification_tool/haarcascade_frontalface_alt2.xml')
+    face_parts_detector = dlib.shape_predictor('classification_tool/shape_predictor_68_face_landmarks.dat')
+    blink_count=0
+    close_bool = False
+    # right_t = 0.262
+    # left_t = 0.255
+    # EYE_AR_THRESH = (right_t+left_t)/2
+    # EYE_AR_CONSEC_FRAMES = 3
+    COUNTER = 0
+    TOTAL = 0
+    right_eye_list = []
+    left_eye_list = []
+    frame_cnt = 0
+    def calc_ear(eye):
+        A = distance.euclidean(eye[1], eye[5])
+        B = distance.euclidean(eye[2], eye[4])
+        C = distance.euclidean(eye[0], eye[3])
+        eye_ear = (A + B) / (2.0 * C)
+        return round(eye_ear, 3)
+
+    while True:
+        tick = cv2.getTickCount()
+
+        ret, rgb = cap.read()
+        try:
+            gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+        except:
+            break
+        faces = face_cascade.detectMultiScale(
+            gray, scaleFactor=1.11, minNeighbors=3, minSize=(100, 100))
+
+        if len(faces) == 1:
+            x, y, w, h = faces[0, :]
+            cv2.rectangle(rgb, (x, y), (x + w, y + h), (255, 0, 0), 2)
+
+            face = dlib.rectangle(x, y, x + w, y + h)
+            face_parts = face_parts_detector(gray, face)
+            face_parts = face_utils.shape_to_np(face_parts)
+
+            left_eye_ear = calc_ear(face_parts[42:48])
+            left_eye_list.append(left_eye_ear)
+            cv2.putText(rgb, "left eye EAR:{} ".format(round(left_eye_ear, 3)),
+                (10, 100), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 1, cv2.LINE_AA)
+
+            right_eye_ear = calc_ear(face_parts[36:42])
+            cv2.putText(rgb, "right eye EAR:{} ".format(round(right_eye_ear, 3)),
+                (10, 120), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 1, cv2.LINE_AA)
+            right_eye_list.append(right_eye_ear)
+            leftEyeHull = cv2.convexHull(face_parts[42:48])
+            rightEyeHull = cv2.convexHull(face_parts[36:42])
+            cv2.drawContours(rgb, [leftEyeHull], -1, (0, 255, 0), 1)
+            cv2.drawContours(rgb, [rightEyeHull], -1, (0, 255, 0), 1)
+
+
+        fps = cv2.getTickFrequency() / (cv2.getTickCount() - tick)
+        # cv2.putText(rgb, "FPS:{} ".format(int(fps)),
+        #     (10, 50), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2, cv2.LINE_AA)
+
+
+        # cv2.imshow('frame', rgb)
+
+        if cv2.waitKey(1) == 27:
+            break  # esc to quit
+
+
+    right_ave = sum(i for i in right_eye_list) / len(right_eye_list)
+    left_ave = sum(i for i in left_eye_list) / len(left_eye_list)
+
+    right_s = math.sqrt((1/len(right_eye_list)*pow(sum(i-right_ave for i in right_eye_list),2)))
+    left_s = math.sqrt((1/len(left_eye_list)*pow(sum(i-left_ave for i in left_eye_list), 2)))
+    right_threshold = right_ave - right_s
+    left_threshold = left_ave - left_s
+    print(right_threshold)
+    print(left_threshold)
+
+    cap.release()
+    cv2.destroyAllWindows()
+    return right_threshold, left_threshold
 
 def calc_ear(eye):
     A = distance.euclidean(eye[1], eye[5])
@@ -30,7 +114,10 @@ def section_concentration(frequency):
             frequency[i] = sum(frequency[i])
 
     for i in frequency:
-        concentration_list.append(round((i - max(frequency)) / (min(frequency) - max(frequency)), 2))
+        try:
+            concentration_list.append(round((i - max(frequency)) / (min(frequency) - max(frequency)), 2))
+        except:
+            concentration_list.append(0)
     return concentration_list
 
 
@@ -52,10 +139,10 @@ def section_concentration_new(c1, c2, c3):
 
 # 返り値: 各1分おきのlistdata(瞬き, 顔の変化量, よそ見したときのフレーム数)
 # 引数: ファイルパス
-def cv_main(video_path):
+def cv_main(video_path, right_t_provisional, left_t_provisional):
     # 開眼度閾値
-    right_t_provisional = 0.220
-    left_t_provisional = 0.219
+    # right_t_provisional = 0.220
+    # left_t_provisional = 0.219
     right_t = right_t_provisional - 0.05
     left_t = left_t_provisional - 0.05
     EYE_AR_THRESH = (right_t_provisional + left_t_provisional) / 2
@@ -89,7 +176,7 @@ def cv_main(video_path):
     # initialize the video stream and allow the cammera sensor to warmup
     print("[INFO] camera sensor warming up...")
     # vs = VideoStream(usePiCamera=args["picamera"] > 0).start()
-    cap = cv2.VideoCapture(file_path)
+    cap = cv2.VideoCapture(video_path)
 
     # cap = cv2.VideoCapture(0)
     # cap = cv2.VideoCapture('movie/test3.mp4')
@@ -241,7 +328,7 @@ def cv_main(video_path):
             cv2.line(frame, p1, p2, (255, 0, 0), 2)
 
         # show the frame
-        cv2.imshow("Frame", frame)
+        #cv2.imshow("Frame", frame)
         key = cv2.waitKey(1) & 0xFF
 
         # if the `q` key was pressed, break from the loop
@@ -288,35 +375,48 @@ def cv_main(video_path):
 
 
 if __name__ == '__main__':
-    file_path = './movie/blink_data_/nedati/tumaranai.mp4'
-    json_file_path = './json_file/blink_data_/nedati/tumaranai.json'
-    json_dir_path = './json_file/blink_data_/nedati/'
+    # file_path = './movie/blink_data_/nedati/tumaranai.mp4'
+    # json_file_path = './json_file/blink_data_/nedati/tumaranai.json'
+    # json_dir_path = './json_file/blink_data_/nedati/'
+    movie_dir_path = './movie/*'
+    p = pathlib.Path('.')
+    cases_name = [str(i) for i in list(p.glob(movie_dir_path))]
+    for index, name in enumerate(cases_name):
+        user_path = [str(i) for i in list(p.glob(str(name) + '/*'))]
+        for i in user_path:
+            file_path = [str(i) for i in list(p.glob(i + '/*'))]
+            for j in file_path:
+                l = pathlib.Path(j)
+                dir_path = str(l.parents[0])
+                dir_path = dir_path.replace('movie/', 'json_file/')
+                file_name = str(l.stem)
+                pathlib.Path(dir_path).mkdir(parents=True, exist_ok=True)
+                right_threshold, left_threshold = eye_open(j)
+                section_list, change_minute, list_looking_away = cv_main(j, right_threshold, left_threshold)
+                c1 = section_concentration(section_list)
+                c2 = section_concentration(change_minute)
+                c3 = section_concentration(list_looking_away)
+                print("c1:", c1)
+                print("c2:", c2)
+                print("c3:", c3)
+                C_list = section_concentration_new(c1, c2, c3)
+                print("C_List:", C_list)
 
-    section_list, change_minute, list_looking_away = cv_main(file_path)
-    c1 = section_concentration(section_list)
-    c2 = section_concentration(change_minute)
-    c3 = section_concentration(list_looking_away)
-    print("c1:", c1)
-    print("c2:", c2)
-    print("c3:", c3)
-    C_list = section_concentration_new(c1, c2, c3)
-    print("C_List:", C_list)
+                C = sum(C_list) / len(C_list)
+                print("C:", C)
 
-    C = sum(C_list) / len(C_list)
-    print("C:", C)
+                data = {
+                    'blink': section_list,
+                    'face': change_minute,
+                    'away': list_looking_away,
+                    'c1': c1,
+                    'c2': c2,
+                    'c3': c3,
+                    'section_concentration': C_list,
+                    'concentration': C,
+                }
 
-    data = {
-        'blink': section_list,
-        'face': change_minute,
-        'away': list_looking_away,
-        'c1': c1,
-        'c2': c2,
-        'c3': c3,
-        'section_concentration': C_list,
-        'concentration': C,
-    }
-
-    p = pathlib.Path(json_dir_path).mkdir(parents=True, exist_ok=True)
-    with open(json_file_path, 'w')as f:
-        json.dump(data, f)
+                # p = pathlib.Path(json_dir_path).mkdir(parents=True, exist_ok=True)
+                with open(dir_path+'/'+file_name+'.json', 'w')as f:
+                    json.dump(data, f)
 
