@@ -5,7 +5,8 @@ from imutils import face_utils
 from scipy.spatial import distance
 import shutil
 import math
-file_name = 'movie/blink_data_/nedati/omosiro'
+# file_name = 'movie/blink_data_/nedati/omosiro'
+file_name ='movie/blink_data_/nedati/tumaranai'
 cap = cv2.VideoCapture(file_name + ".mp4")
 face_cascade = cv2.CascadeClassifier('classification_tool/haarcascade_frontalface_alt2.xml')
 face_parts_detector = dlib.shape_predictor('classification_tool/shape_predictor_68_face_landmarks.dat')
