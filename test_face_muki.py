@@ -371,7 +371,7 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
     cap.release()
     cv2.destroyAllWindows()
 
-    return section_list, change_minute, list_looking_away
+    return section_list, change_minute, list_looking_away, change_list
 
 
 if __name__ == '__main__':
@@ -392,7 +392,7 @@ if __name__ == '__main__':
                 file_name = str(l.stem)
                 pathlib.Path(dir_path).mkdir(parents=True, exist_ok=True)
                 right_threshold, left_threshold = eye_open(j)
-                section_list, change_minute, list_looking_away = cv_main(j, right_threshold, left_threshold)
+                section_list, change_minute, list_looking_away, change_list = cv_main(j, right_threshold, left_threshold)
                 c1 = section_concentration(section_list)
                 c2 = section_concentration(change_minute)
                 c3 = section_concentration(list_looking_away)
@@ -404,8 +404,8 @@ if __name__ == '__main__':
 
                 C = sum(C_list) / len(C_list)
                 print("C:", C)
-
                 data = {
+                    'face_raw': change_list,
                     'blink': section_list,
                     'face': change_minute,
                     'away': list_looking_away,
@@ -418,5 +418,5 @@ if __name__ == '__main__':
 
                 # p = pathlib.Path(json_dir_path).mkdir(parents=True, exist_ok=True)
                 with open(dir_path+'/'+file_name+'.json', 'w')as f:
-                    json.dump(data, f)
+                    json.dump(data, f, indent=4)
 
