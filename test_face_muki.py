@@ -8,51 +8,6 @@ from scipy.spatial import distance
 import json
 import pathlib
 
-# 開眼度閾値
-right_t_provisional = 0.220
-left_t_provisional = 0.219
-right_t = right_t_provisional - 0.05
-left_t = left_t_provisional - 0.05
-EYE_AR_THRESH = (right_t_provisional + left_t_provisional) / 2
-EYE_AR_CONSEC_FRAMES = 1
-# 目を閉じたときのカウンター
-COUNTER = 0
-# 目を閉じたときのトータルカウント
-TOTAL = 0
-# 1分おきの瞬き回数のリスト
-section_list = []
-# 1分おきの瞬き回数
-section_cnt = 0
-# すべてのフレームのカウント
-frame_cnt = 0
-# 1分おきのよそ見したフレーム数
-cnt_looking_away = 0
-# 1分おきのよそ見したフレーム数のリスト
-list_looking_away = []
-# 顔の変化のリスト
-change_list = []
-# 1分おきの顔の変化リスト
-section_change_list = []
-
-
-file_path = './movie/blink_data_/nedati/tumaranai.mp4'
-json_file_path = './json_file/blink_data_/nedati/tumaranai.json'
-json_dir_path = './json_file/blink_data_/nedati/'
-
-# 1フレーム前の顔の位置のポイント
-old_points = None
-print("[INFO] loading facial landmark predictor...")
-
-detector = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor('classification_tool/shape_predictor_68_face_landmarks.dat')
-face_cascade = cv2.CascadeClassifier('classification_tool/haarcascade_frontalface_alt2.xml')
-# initialize the video stream and allow the cammera sensor to warmup
-print("[INFO] camera sensor warming up...")
-# vs = VideoStream(usePiCamera=args["picamera"] > 0).start()
-cap = cv2.VideoCapture(file_path)
-
-# cap = cv2.VideoCapture(0)
-# cap = cv2.VideoCapture('movie/test3.mp4')
 
 def calc_ear(eye):
     A = distance.euclidean(eye[1], eye[5])
@@ -95,223 +50,273 @@ def section_concentration_new(c1, c2, c3):
     return concentration
 
 
-while True:
-    frame_cnt += 1
-    ret, frame = cap.read()
+# 返り値: 各1分おきのlistdata(瞬き, 顔の変化量, よそ見したときのフレーム数)
+# 引数: ファイルパス
+def cv_main(video_path):
+    # 開眼度閾値
+    right_t_provisional = 0.220
+    left_t_provisional = 0.219
+    right_t = right_t_provisional - 0.05
+    left_t = left_t_provisional - 0.05
+    EYE_AR_THRESH = (right_t_provisional + left_t_provisional) / 2
+    EYE_AR_CONSEC_FRAMES = 1
+    # 目を閉じたときのカウンター
+    COUNTER = 0
+    # 目を閉じたときのトータルカウント
+    TOTAL = 0
+    # 1分おきの瞬き回数のリスト
+    section_list = []
+    # 1分おきの瞬き回数
+    section_cnt = 0
+    # すべてのフレームのカウント
+    frame_cnt = 0
+    # 1分おきのよそ見したフレーム数
+    cnt_looking_away = 0
+    # 1分おきのよそ見したフレーム数のリスト
+    list_looking_away = []
+    # 顔の変化のリスト
+    change_list = []
+    # 1分おきの顔の変化リスト
+    section_change_list = []
 
-    # frame = imutils.resize(frame, width=500)
-    try:
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    except:
-        break
+    # 1フレーム前の顔の位置のポイント
+    old_points = None
+    print("[INFO] loading facial landmark predictor...")
 
-    faces = face_cascade.detectMultiScale(
-        gray, scaleFactor=1.11, minNeighbors=3, minSize=(100, 100))
-    rects = detector(gray, 0)
-    if len(rects) == 0:
-        cnt_looking_away += 1
-        cv2.putText(frame, "away", (10, 195), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 255), 3, 1)
+    detector = dlib.get_frontal_face_detector()
+    predictor = dlib.shape_predictor('classification_tool/shape_predictor_68_face_landmarks.dat')
+    face_cascade = cv2.CascadeClassifier('classification_tool/haarcascade_frontalface_alt2.xml')
+    # initialize the video stream and allow the cammera sensor to warmup
+    print("[INFO] camera sensor warming up...")
+    # vs = VideoStream(usePiCamera=args["picamera"] > 0).start()
+    cap = cv2.VideoCapture(file_path)
 
-    image_points = None
+    # cap = cv2.VideoCapture(0)
+    # cap = cv2.VideoCapture('movie/test3.mp4')
 
-    for rect in rects:
-        shape = predictor(gray, rect)
-        shape = face_utils.shape_to_np(shape)
+    while True:
+        frame_cnt += 1
+        ret, frame = cap.read()
 
-        image_points = np.array([tuple(shape[30]), tuple(shape[8]), tuple(shape[36]), tuple(shape[45]),
-                                 tuple(shape[48]), tuple(shape[54])])
+        # frame = imutils.resize(frame, width=500)
+        try:
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        except:
+            break
 
-        for (x, y) in image_points:
-            cv2.circle(frame, (x, y), 1, (0, 0, 255), -1)
-
-        image_points = np.array([tuple(shape[30]), tuple(shape[8]), tuple(shape[36]), tuple(shape[45]),
-                                 tuple(shape[48]), tuple(shape[54])], dtype='double')
-
-        if len(faces) == 1:
-            x, y, w, h = faces[0, :]
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-            face_gray = gray[y:(y + h), x:(x + w)]
-            scale = 480 / h
-            face_gray_resized = cv2.resize(face_gray, dsize=None, fx=scale, fy=scale)
-
-            face = dlib.rectangle(0, 0, face_gray_resized.shape[1], face_gray_resized.shape[0])
-            face_parts = predictor(face_gray_resized, face)
-            face_parts = face_utils.shape_to_np(face_parts)
-
-            left_eye = face_parts[42:48]
-            eye_marker(face_gray_resized, left_eye)
-
-            left_eye_ear = calc_ear(left_eye)
-            print(left_eye_ear)
-
-            right_eye = face_parts[36:42]
-            eye_marker(face_gray_resized, right_eye)
-
-            right_eye_ear = calc_ear(right_eye)
-            print(right_eye_ear)
-            # t = (right_eye_ear + left_eye_ear) / 2.0
-            # if t < EYE_AR_THRESH:
-            if right_eye_ear < right_t and left_eye_ear < left_t:
-                # 瞬き閾値より現在のearが下回った場合(目を閉じた時)
-                # if right_eye_ear < right_t and left_eye_ear < left_t:
-                # close_bool = True
-                COUNTER += 1
-                # print("input",COUNTER)
-
-            # 瞬き閾値より現在のearが上回った場合(目を開けた時)
-            else:
-                # 　目を開けた時、カウンターが一定値以上だったら
-                if COUNTER >= EYE_AR_CONSEC_FRAMES:
-                    TOTAL += 1
-                    section_cnt += 1
-                    cv2.putText(frame, "blink", (10, 180), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 255), 3, 1)
-
-                COUNTER = 0
-
-        # if len(rects) > 0:
-        # # cv2.putText(frame, "detected", (10, 30), cv2.FONT_HERSHEY_PLAIN, 0.7, (0, 0, 255), 2)
-
-        model_points = np.array([
-            (0.0, 0.0, 0.0),
-            (0.0, -330.0, -65.0),
-            (-225.0, 170.0, -135.0),
-            (225.0, 170.0, -135.0),
-            (-150.0, -150.0, -125.0),
-            (150.0, -150.0, -125.0)
-        ])
-
-        size = frame.shape
-
-        focal_length = size[1]
-        center = (size[1] // 2, size[0] // 2)
-
-        camera_matrix = np.array([
-            [focal_length, 0, center[0]],
-            [0, focal_length, center[1]],
-            [0, 0, 1]
-        ], dtype='double')
-
-        dist_coeffs = np.zeros((4, 1))
-
-        # 物体の姿勢を求める
-        (success, rotation_vector, translation_vector) = cv2.solvePnP(model_points, image_points, camera_matrix,
-                                                                      dist_coeffs, flags=cv2.SOLVEPNP_ITERATIVE)
-        # 回転行列と回転ベクトルを相互に変換
-        (rotation_matrix, jacobian) = cv2.Rodrigues(rotation_vector)
-        mat = np.hstack((rotation_matrix, translation_vector))
-
-        # homogeneous transformation matrix (projection matrix)　射影行列を，回転行列とカメラ行列に分解します．
-        (_, _, _, _, _, _, eulerAngles) = cv2.decomposeProjectionMatrix(mat)  # 回転を表す3つのオイラー角．
-        # 顔の横の向き17で判定
-        yaw = eulerAngles[1]
-        # 顔の上下の向き　156以下170以上で判定
-        pitch = eulerAngles[0]
-        # 顔の回転 10で判定
-        roll = eulerAngles[2]
-
-        if abs(yaw) >= 17 or pitch >= 180 or pitch <= 156 or abs(roll) >= 10:
+        faces = face_cascade.detectMultiScale(
+            gray, scaleFactor=1.11, minNeighbors=3, minSize=(100, 100))
+        rects = detector(gray, 0)
+        if len(rects) == 0:
             cnt_looking_away += 1
             cv2.putText(frame, "away", (10, 195), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 255), 3, 1)
 
-        cv2.putText(frame, 'yaw' + str(int(yaw)), (20, 10), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 2)
-        cv2.putText(frame, 'pitch' + str(int(pitch)), (20, 25), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 2)
-        cv2.putText(frame, 'roll' + str(int(roll)), (20, 40), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 2)
+        # image_points = None
 
-        cv2.putText(frame, 'blink_cnt' + str(int(section_cnt)), (20, 65), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 2)
+        for rect in rects:
+            shape = predictor(gray, rect)
+            shape = face_utils.shape_to_np(shape)
 
-        (nose_end_point2D, _) = cv2.projectPoints(np.array([(0.0, 0.0, 1000.0)]), rotation_vector,
-                                                  translation_vector, camera_matrix, dist_coeffs)
+            image_points = np.array([tuple(shape[30]), tuple(shape[8]), tuple(shape[36]), tuple(shape[45]),
+                                     tuple(shape[48]), tuple(shape[54])])
 
-        # 1フレーム前と今のlistの差分をframe_change_listに入れた
-        frame_change_list = []
-        for p in range(len(image_points)):
-            if type(old_points) == type(image_points):
-                frame_change_list.append(
-                    [int(image_points[p][0]) - int(old_points[p][0]), int(image_points[p][1]) - int(old_points[p][1])]
-                )
+            for (x, y) in image_points:
+                cv2.circle(frame, (x, y), 1, (0, 0, 255), -1)
 
-            cv2.circle(frame, (int(image_points[p][0]), int(image_points[p][1])), 3, (0, 0, 255), -1)
+            image_points = np.array([tuple(shape[30]), tuple(shape[8]), tuple(shape[36]), tuple(shape[45]),
+                                     tuple(shape[48]), tuple(shape[54])], dtype='double')
 
-        old_points = image_points
-        section_change_list.append(frame_change_list)
+            if len(faces) == 1:
+                x, y, w, h = faces[0, :]
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                face_gray = gray[y:(y + h), x:(x + w)]
+                scale = 480 / h
+                face_gray_resized = cv2.resize(face_gray, dsize=None, fx=scale, fy=scale)
 
-        p1 = (int(image_points[0][0]), int(image_points[0][1]))
-        p2 = (int(nose_end_point2D[0][0][0]), int(nose_end_point2D[0][0][1]))
+                face = dlib.rectangle(0, 0, face_gray_resized.shape[1], face_gray_resized.shape[0])
+                face_parts = predictor(face_gray_resized, face)
+                face_parts = face_utils.shape_to_np(face_parts)
 
-        cv2.line(frame, p1, p2, (255, 0, 0), 2)
+                left_eye = face_parts[42:48]
+                eye_marker(face_gray_resized, left_eye)
 
-    # show the frame
-    cv2.imshow("Frame", frame)
-    key = cv2.waitKey(1) & 0xFF
+                left_eye_ear = calc_ear(left_eye)
+                print(left_eye_ear)
 
-    # if the `q` key was pressed, break from the loop
-    if key == ord("q"):
-        break
+                right_eye = face_parts[36:42]
+                eye_marker(face_gray_resized, right_eye)
 
-    if frame_cnt == 1800:
-        section_list.append(section_cnt)
-        section_cnt = 0
-        frame_cnt = 0
+                right_eye_ear = calc_ear(right_eye)
+                print(right_eye_ear)
+                # t = (right_eye_ear + left_eye_ear) / 2.0
+                # if t < EYE_AR_THRESH:
+                if right_eye_ear < right_t and left_eye_ear < left_t:
+                    # 瞬き閾値より現在のearが下回った場合(目を閉じた時)
+                    # if right_eye_ear < right_t and left_eye_ear < left_t:
+                    # close_bool = True
+                    COUNTER += 1
+                    # print("input",COUNTER)
 
-        change_list.append(section_change_list)
-        section_change_list = []
+                # 瞬き閾値より現在のearが上回った場合(目を開けた時)
+                else:
+                    # 　目を開けた時、カウンターが一定値以上だったら
+                    if COUNTER >= EYE_AR_CONSEC_FRAMES:
+                        TOTAL += 1
+                        section_cnt += 1
+                        cv2.putText(frame, "blink", (10, 180), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 255), 3, 1)
 
-        list_looking_away.append(cnt_looking_away)
-        cnt_looking_away = 0
+                    COUNTER = 0
 
-section_list.append(section_cnt)
-section_cnt = 0
-frame_cnt = 0
-change_list.append(section_change_list)
-list_looking_away.append(cnt_looking_away)
-print(section_list)
-# print(change_list)
+            # if len(rects) > 0:
+            # # cv2.putText(frame, "detected", (10, 30), cv2.FONT_HERSHEY_PLAIN, 0.7, (0, 0, 255), 2)
 
-# 1分おきのx,yの変化量をすべて足してまとめた
-change_minute = []
-for i in change_list:
-    x_all = 0
-    y_all = 0
-    for j in i:
-        for k in j:
-            x_all += abs(k[0])
-            y_all += abs(k[1])
-    change_minute.append([x_all, y_all])
-print(change_minute)
+            model_points = np.array([
+                (0.0, 0.0, 0.0),
+                (0.0, -330.0, -65.0),
+                (-225.0, 170.0, -135.0),
+                (225.0, 170.0, -135.0),
+                (-150.0, -150.0, -125.0),
+                (150.0, -150.0, -125.0)
+            ])
 
-print(list_looking_away)
+            size = frame.shape
 
-c1 = section_concentration(section_list)
-c2 = section_concentration(change_minute)
-c3 = section_concentration(list_looking_away)
-print("c1:", c1)
-print("c2:", c2)
-print("c3:", c3)
-C_list = section_concentration_new(c1, c2, c3)
-print("C_List:", C_list)
+            focal_length = size[1]
+            center = (size[1] // 2, size[0] // 2)
 
-C = sum(C_list) / len(C_list)
-print("C:", C)
+            camera_matrix = np.array([
+                [focal_length, 0, center[0]],
+                [0, focal_length, center[1]],
+                [0, 0, 1]
+            ], dtype='double')
 
-data = {
-    'blink': section_list,
-    'face': change_minute,
-    'away': cnt_looking_away,
-    'c1': c1,
-    'c2':c2,
-    'c3':c3,
-    'section_concentration': C_list,
-    'concentration': C,
-}
+            dist_coeffs = np.zeros((4, 1))
 
-p = pathlib.Path(json_dir_path).mkdir(parents=True, exist_ok=True)
-with open(json_file_path, 'w')as f:
-    json.dump(data, f)
-# with p.open('w')as file:
-#     file.write(data)
+            # 物体の姿勢を求める
+            (success, rotation_vector, translation_vector) = cv2.solvePnP(model_points, image_points, camera_matrix,
+                                                                          dist_coeffs, flags=cv2.SOLVEPNP_ITERATIVE)
+            # 回転行列と回転ベクトルを相互に変換
+            (rotation_matrix, jacobian) = cv2.Rodrigues(rotation_vector)
+            mat = np.hstack((rotation_matrix, translation_vector))
+
+            # homogeneous transformation matrix (projection matrix)　射影行列を，回転行列とカメラ行列に分解します．
+            (_, _, _, _, _, _, eulerAngles) = cv2.decomposeProjectionMatrix(mat)  # 回転を表す3つのオイラー角．
+            # 顔の横の向き17で判定
+            yaw = eulerAngles[1]
+            # 顔の上下の向き　156以下170以上で判定
+            pitch = eulerAngles[0]
+            # 顔の回転 10で判定
+            roll = eulerAngles[2]
+
+            if abs(yaw) >= 17 or pitch >= 180 or pitch <= 156 or abs(roll) >= 10:
+                cnt_looking_away += 1
+                cv2.putText(frame, "away", (10, 195), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 255), 3, 1)
+
+            cv2.putText(frame, 'yaw' + str(int(yaw)), (20, 10), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 2)
+            cv2.putText(frame, 'pitch' + str(int(pitch)), (20, 25), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 2)
+            cv2.putText(frame, 'roll' + str(int(roll)), (20, 40), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 2)
+
+            cv2.putText(frame, 'blink_cnt' + str(int(section_cnt)), (20, 65), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 2)
+
+            (nose_end_point2D, _) = cv2.projectPoints(np.array([(0.0, 0.0, 1000.0)]), rotation_vector,
+                                                      translation_vector, camera_matrix, dist_coeffs)
+
+            # 1フレーム前と今のlistの差分をframe_change_listに入れた
+            frame_change_list = []
+            for p in range(len(image_points)):
+                if type(old_points) == type(image_points):
+                    frame_change_list.append(
+                        [int(image_points[p][0]) - int(old_points[p][0]),
+                         int(image_points[p][1]) - int(old_points[p][1])]
+                    )
+
+                cv2.circle(frame, (int(image_points[p][0]), int(image_points[p][1])), 3, (0, 0, 255), -1)
+
+            old_points = image_points
+            section_change_list.append(frame_change_list)
+
+            p1 = (int(image_points[0][0]), int(image_points[0][1]))
+            p2 = (int(nose_end_point2D[0][0][0]), int(nose_end_point2D[0][0][1]))
+
+            cv2.line(frame, p1, p2, (255, 0, 0), 2)
+
+        # show the frame
+        cv2.imshow("Frame", frame)
+        key = cv2.waitKey(1) & 0xFF
+
+        # if the `q` key was pressed, break from the loop
+        if key == ord("q"):
+            break
+
+        if frame_cnt == 1800:
+            section_list.append(section_cnt)
+            section_cnt = 0
+            frame_cnt = 0
+
+            change_list.append(section_change_list)
+            section_change_list = []
+
+            list_looking_away.append(cnt_looking_away)
+            cnt_looking_away = 0
+
+    section_list.append(section_cnt)
+    section_cnt = 0
+    frame_cnt = 0
+    change_list.append(section_change_list)
+    list_looking_away.append(cnt_looking_away)
+    print(section_list)
+    # print(change_list)
+
+    # 1分おきのx,yの変化量をすべて足してまとめた
+    change_minute = []
+    for i in change_list:
+        x_all = 0
+        y_all = 0
+        for j in i:
+            for k in j:
+                x_all += abs(k[0])
+                y_all += abs(k[1])
+        change_minute.append([x_all, y_all])
+    print(change_minute)
+
+    print(list_looking_away)
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+    return section_list, change_minute, list_looking_away
 
 
-cap.release()
-cv2.destroyAllWindows()
+if __name__ == '__main__':
+    file_path = './movie/blink_data_/nedati/tumaranai.mp4'
+    json_file_path = './json_file/blink_data_/nedati/tumaranai.json'
+    json_dir_path = './json_file/blink_data_/nedati/'
 
+    section_list, change_minute, list_looking_away = cv_main(file_path)
+    c1 = section_concentration(section_list)
+    c2 = section_concentration(change_minute)
+    c3 = section_concentration(list_looking_away)
+    print("c1:", c1)
+    print("c2:", c2)
+    print("c3:", c3)
+    C_list = section_concentration_new(c1, c2, c3)
+    print("C_List:", C_list)
+
+    C = sum(C_list) / len(C_list)
+    print("C:", C)
+
+    data = {
+        'blink': section_list,
+        'face': change_minute,
+        'away': list_looking_away,
+        'c1': c1,
+        'c2': c2,
+        'c3': c3,
+        'section_concentration': C_list,
+        'concentration': C,
+    }
+
+    p = pathlib.Path(json_dir_path).mkdir(parents=True, exist_ok=True)
+    with open(json_file_path, 'w')as f:
+        json.dump(data, f)
 
