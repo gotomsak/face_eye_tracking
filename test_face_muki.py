@@ -405,7 +405,6 @@ if __name__ == '__main__':
                 C = sum(C_list) / len(C_list)
                 print("C:", C)
                 data = {
-                    'face_raw': change_list,
                     'blink': section_list,
                     'face': change_minute,
                     'away': list_looking_away,
@@ -414,6 +413,7 @@ if __name__ == '__main__':
                     'c3': c3,
                     'section_concentration': C_list,
                     'concentration': C,
+                    'face_raw': change_list,
                 }
 
                 # p = pathlib.Path(json_dir_path).mkdir(parents=True, exist_ok=True)
