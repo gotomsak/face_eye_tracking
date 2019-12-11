@@ -8,7 +8,7 @@
 <div class="parent">
     <video ref="video" id="video" width="1200" height="900" autoplay muted playsinline></video>
     <div class="parent-button">
-        <button onclick="startButton()">start</button>
+        <button onclick="subStartButton()" id="dis">start</button>
         <button onclick="stopButton()">stop</button>
         <button onclick="setLimit1()">1分で終わる</button>
         <button onclick="setLimit5()">5分で終わる</button>
@@ -17,9 +17,14 @@
         <button onclick="setLimitNull()">自分でstopを押す(defalut)</button>
     </div>
 
-    <p id="state"></p>
-    <p id="timer"></p>
-    <p id="limit"></p>
+    <ul class="yoko">
+        <li id="state"></li>
+        <li id="timer"></li>
+        <li id="limit"></li>
+        <li id="subtimer"></li>
+        <li>メニューを選んでstartを押すと3秒後に録画を開始します, 録画開始後の最初の1秒間は瞬きせずに正面を向いてください</li>
+    </ul>
+
 </div>
 
 </body>
@@ -32,49 +37,71 @@
     let blob
     let startFrag = false
     let createClock
+    let subCreateClock
     let time = 0
     let timerId = document.getElementById('timer')
+    let subTime = 0
+    let subTimerId = document.getElementById('subtimer')
     let limit5 = 300
     let limit10 = 600
     let limit1 = 1
     let limit60 = 60
 
+    let flag = document.getElementById('state')
     let setLimit = null
     let viewLimit = document.getElementById('limit')
+    let dis = document.getElementById('dis')
 
     window.onload = function () {
         initVideo()
-        timerId.innerHTML = time
+        timerId.innerHTML = "time: " + time
         viewLimit.innerHTML = "自分でstop"
     }
+
     function setLimit1() {
         setLimit = limit60
         viewLimit.innerHTML = "1分"
     }
+
     function setLimit5() {
-        setLimit=limit5
+        setLimit = limit5
         viewLimit.innerHTML = "5分"
     }
+
     function setLimit10() {
-        setLimit=limit10
+        setLimit = limit10
         viewLimit.innerHTML = "10分"
     }
+
     function setLimitNull() {
         setLimit = null
         viewLimit.innerHTML = "自分でstop"
     }
-    function setThreshold(){
+
+    function setThreshold() {
         setLimit = limit1
         viewLimit.innerHTML = "閾値の動画を取る"
     }
 
     function counter() {
         time += 1;
-        timerId.innerHTML = time
-        if (time === setLimit){
+        timerId.innerHTML = "time: " + time
+        if (time === setLimit) {
             stopButton()
 
         }
+    }
+
+    function subCounter() {
+        subTime += 1
+        subTimerId.innerHTML = "subTime: " + subTime
+        if (subTime === 3) {
+            startButton()
+        }
+    }
+
+    function subStartTimer() {
+        subCreateClock = setInterval(subCounter, 1000);
     }
 
     function startTimer() {
@@ -86,22 +113,32 @@
     }
 
     function stateState() {
-        let flag = document.getElementById('state')
+
         if (startFrag === true) {
-            flag.innerHTML = '録画中'
+            flag.innerHTML = 'state: 録画中'
         } else {
-            flag.innerHTML = ''
+            flag.innerHTML = 'state: stop'
         }
     }
 
+    function subStartButton() {
+        dis.disabled = true;
+        subStartTimer()
+        flag.innerHTML = 'state: 3秒後に録画を開始します'
+
+    }
+
     function startButton() {
+        clearInterval(subCreateClock)
         mediaRecorder.start()
+        subTime = 0
         startFrag = true
         stateState()
         startTimer()
     }
 
     function stopButton() {
+        dis.disabled = false;
         mediaRecorder.stop()
         startFrag = false
         stateState()
@@ -152,6 +189,12 @@
 
     .parent {
 
+    }
+
+    .yoko li{
+        float: left;
+        list-style: none;
+        margin: 30px;
     }
 
 </style>
