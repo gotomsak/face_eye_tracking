@@ -176,7 +176,7 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
     # initialize the video stream and allow the cammera sensor to warmup
     print("[INFO] camera sensor warming up...")
     # vs = VideoStream(usePiCamera=args["picamera"] > 0).start()
-    cap = cv2.VideoCapture(video_path)
+    cap = cv2.VideoCapture(0)
 
     # cap = cv2.VideoCapture(0)
     # cap = cv2.VideoCapture('movie/test3.mp4')
