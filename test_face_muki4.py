@@ -34,6 +34,9 @@ def section_frequency(section_list):
     section_frequency = []
     if np.array(section_list).ndim == 2:
         for i in section_list:
+            if None in i:
+                section_frequency.append([None, None])
+                continue
             section_frequency.append([i[0] / 12, i[1] / 12])
     else:
         for i in section_list:
@@ -50,6 +53,10 @@ def change_5_second(all_change_list):
         x_all = 0
         y_all = 0
         for i in z:
+            if None in i:
+                print(z)
+                change_5_second.append([None, None])
+                break
             x_all += abs(i[0])
             y_all += abs(i[1])
         change_5_second.append([x_all, y_all])
@@ -61,6 +68,9 @@ def section_concentration(frequency):
     concentration_list = []
     if np.array(frequency).ndim == 2:
         for i in range(len(frequency)):
+            if None in frequency[i]:
+                frequency[i] = None
+                continue
             frequency[i] = sum(frequency[i])
 
     for i in frequency:
@@ -129,7 +139,7 @@ if __name__ == '__main__':
     # json_dir_path = './json_file/blink_data_/nedati/'
     right_threshold = 0.2
     left_threshold = 0.2
-    load_data = open("movie/face_eye_data/inagawa/movie2.mp4cv.json", 'r')
+    load_data = open("movie_test/testgoto.mp4cv.json", 'r')
     load_data = json.load(load_data)
     print(load_data)
     # 動画の処理をするmain関数

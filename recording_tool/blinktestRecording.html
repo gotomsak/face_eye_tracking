@@ -6,7 +6,7 @@
 </head>
 <body>
 <div class="parent">
-    <video ref="video" id="video" width="1200" height="900" autoplay muted playsinline></video>
+    <video ref="video" id="video" width="1280" height="720" autoplay muted playsinline></video>
     <div class="parent-button">
         <button onclick="subStartButton()" id="dis">start</button>
         <button onclick="stopButton()">stop</button>
@@ -150,11 +150,13 @@
         videoInput = document.getElementById('video');
         console.log('キャプチャスタート')
         w = videoInput.offsetWidth;
+        console.log(w)
         h = videoInput.offsetHeight;
+        console.log(h)
         videoInput.setAttribute("width", w)
         videoInput.setAttribute("height", h)
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            navigator.mediaDevices.getUserMedia({video: true}).then(stream => {
+            navigator.mediaDevices.getUserMedia({video: {width:1280, height: 720}}).then(stream => {
                 let options = {
                     videoBitesPerSecond: 2500000,
                     mimeType: 'video/webm;codecs=h264'
@@ -164,9 +166,10 @@
                 mediaRecorder.ondataavailable = function (e) {
                     let blob = new Blob([e.data], {type: 'video/mp4'})
                     let audio = document.createElement('audio');
-                    audio.setAttribute("width", this.w)
-                    audio.setAttribute("height", this.h)
+                    audio.setAttribute("width", w)
+                    audio.setAttribute("height",h)
                     let audioUrl = window.URL.createObjectURL(blob)
+
                     //this.$store.state.movieFile = e.data // errorでた
                     audio.src = audioUrl
                     let a = document.createElement('a');

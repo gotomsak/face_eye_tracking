@@ -16,17 +16,9 @@ def eye_open(file_name):
     cap = cv2.VideoCapture(file_name)
     face_cascade = cv2.CascadeClassifier('classification_tool/haarcascade_frontalface_alt2.xml')
     face_parts_detector = dlib.shape_predictor('classification_tool/shape_predictor_68_face_landmarks.dat')
-    blink_count = 0
-    close_bool = False
-    # right_t = 0.262
-    # left_t = 0.255
-    # EYE_AR_THRESH = (right_t+left_t)/2
-    # EYE_AR_CONSEC_FRAMES = 3
-    COUNTER = 0
-    TOTAL = 0
+
     right_eye_list = []
     left_eye_list = []
-    frame_cnt = 0
 
     while True:
         tick = cv2.getTickCount()
@@ -62,13 +54,12 @@ def eye_open(file_name):
             cv2.drawContours(rgb, [rightEyeHull], -1, (0, 255, 0), 1)
 
         fps = cv2.getTickFrequency() / (cv2.getTickCount() - tick)
-        # cv2.putText(rgb, "FPS:{} ".format(int(fps)),
-        #     (10, 50), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2, cv2.LINE_AA)
 
         # cv2.imshow('frame', rgb)
 
         if cv2.waitKey(1) == 27:
             break  # esc to quit
+
 
     right_ave = sum(i for i in right_eye_list) / len(right_eye_list)
     left_ave = sum(i for i in left_eye_list) / len(left_eye_list)
@@ -77,8 +68,6 @@ def eye_open(file_name):
     left_s = math.sqrt((1 / len(left_eye_list) * pow(sum(i - left_ave for i in left_eye_list), 2)))
     right_threshold = right_ave - right_s
     left_threshold = left_ave - left_s
-    # print(right_threshold)
-    # print(left_threshold)
 
     cap.release()
     cv2.destroyAllWindows()
@@ -100,35 +89,20 @@ def eye_marker(face_mat, position):
         cv2.putText(face_mat, str(i), (x + 2, y - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
 
 
-# 5秒ごとのwを返す関数
-# def (all_angle_list):
-
-
 # 5秒ごとの頻度を返す関数　回数 / 12
-def section_frequency(section_list):
-    section_frequency = []
-    if np.array(section_list).ndim == 2:
-        for i in section_list:
-            section_frequency.append([i[0] / 12, i[1] / 12])
-    else:
-        for i in section_list:
-            # 5/12?
-            section_frequency.append(i / 12)
-
-    return section_frequency
+def blink_frequency(blink_num):
+    return blink_num / 12
 
 
-# 5秒おきの顔の移動量に変える
-def change_5_second(all_change):
-    change_5_second = []
+# 5秒おきの頻度を返す
+def change_frequency(all_change):
+    change_60_second = []
+    x_y_all_frame = 0
     for z in all_change:
-        x_all = 0
-        y_all = 0
         for i in z:
-            x_all += abs(i[0])
-            y_all += abs(i[1])
-        change_5_second.append([x_all, y_all])
-    return change_5_second
+            x_y_all_frame += abs(i[0])+abs(i[1])
+
+    return x_y_all_frame/12
 
 
 # セクションごとの集中度を出す
@@ -211,33 +185,33 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
     # 目を閉じたときのトータルカウント
     TOTAL = 0
 
-    # 5秒間の瞬き回数
-    blink_cnt = 0
+    # 60秒間の瞬き回数
+    blink_60_cnt = 0
 
     # すべてのフレームのカウント
     all_frame_cnt = 0
-    section_frame_cnt = 0
+    section_60_frame_cnt = 0
 
     # 顔の変化のリスト
     change_list = []
 
-    # 5秒おきの瞬き回数のリスト
-    section_blink_list = []
 
-    # 5秒おきの顔の変化リスト
-    section_change_list = []
 
-    # 5秒おきの角度
-    section_angle_list = []
 
-    # 5秒おきのすべての角度
-    all_angle_list = []
+    # 5,60秒おきの顔の変化リスト
+    section_60_change_list = []
 
-    # 5秒おきのすべての瞬き
-    all_blink_list = []
+    # 5,60秒おきの角度
+    section_60_angle_list = []
 
-    # 5秒おきのすべての顔の変化
-    all_change_list = []
+    # 5,60秒おきのすべての角度
+    all_60_angle_list = []
+
+    # 60秒間のすべての瞬き
+    # all_60_blink = 0
+
+    # 5,60秒おきのすべての顔の変化
+    all_60_change_list = []
 
     angle_threshold_up = 150
     angle_threshold_down = 175
@@ -264,8 +238,8 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
     while True:
 
         all_frame_cnt += 1
-        section_frame_cnt += 1
-
+        section_60_frame_cnt += 1
+        rect_frag = False
         ret, frame = cap.read()
 
         # frame = imutils.resize(frame, width=500)
@@ -277,11 +251,12 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
         faces = face_cascade.detectMultiScale(
             gray, scaleFactor=1.11, minNeighbors=3, minSize=(100, 100))
         rects = detector(gray, 0)
-        # if len(rects) == 0:
-        #     cnt_looking_away += 1
-        #     cv2.putText(frame, "away", (10, 195), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 255), 3, 1)
+
+        if len(rects) == 0:
+            break
 
         for rect in rects:
+            rect_frag = True
             shape = predictor(gray, rect)
             shape = face_utils.shape_to_np(shape)
 
@@ -309,26 +284,21 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
                 eye_marker(face_gray_resized, left_eye)
 
                 left_eye_ear = calc_ear(left_eye)
-                #print(left_eye_ear)
 
                 right_eye = face_parts[36:42]
                 eye_marker(face_gray_resized, right_eye)
 
                 right_eye_ear = calc_ear(right_eye)
-                #print(right_eye_ear)
-                # t = (right_eye_ear + left_eye_ear) / 2.0
-                # if t < EYE_AR_THRESH:
+
                 if right_eye_ear < right_t and left_eye_ear < left_t:
                     # 瞬き閾値より現在のearが下回った場合(目を閉じた時)
-                    # if right_eye_ear < right_t and left_eye_ear < left_t:
-                    # close_bool = True
                     COUNTER += 1
                 # 瞬き閾値より現在のearが上回った場合(目を開けた時)
                 else:
                     # 　目を開けた時、カウンターが一定値以上だったら
                     if COUNTER >= EYE_AR_CONSEC_FRAMES:
                         TOTAL += 1
-                        blink_cnt += 1
+                        blink_60_cnt += 1
                         cv2.putText(frame, "blink", (10, 180), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 255), 3, 1)
 
                     COUNTER = 0
@@ -383,26 +353,31 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
                 # section_angle_list.append([0, 0, 0])
             elif abs(yaw) < angle_threshold_yaw and abs(pitch) > angle_threshold_up and abs(
                     pitch) < angle_threshold_down and abs(roll) < angle_threshold_roll:
-                section_angle_list.append(
+                section_60_angle_list.append(
                     [abs(yaw - fast_yaw), abs(pitch - (fast_pitch + angle_threshold_pitch)), abs(roll - fast_roll)])
             else:
-                section_angle_list.append([angle_threshold_yaw, angle_threshold_pitch, angle_threshold_roll])
+                print("kuso")
+                section_60_angle_list.append([angle_threshold_yaw, angle_threshold_pitch, angle_threshold_roll])
 
             cv2.putText(frame, 'yaw' + str(int(yaw)), (20, 10), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 2)
             cv2.putText(frame, 'pitch' + str(int(pitch)), (20, 25), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 2)
             cv2.putText(frame, 'roll' + str(int(roll)), (20, 40), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 2)
 
-            cv2.putText(frame, 'blink_cnt' + str(int(blink_cnt)), (20, 65), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 2)
-
+            cv2.putText(frame, 'blink_60_cnt' + str(int(blink_60_cnt)), (20, 65), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255),
+                        2)
+            cv2.putText(frame, 'all_frame_cnt' + str(int(all_frame_cnt)), (20, 80), cv2.FONT_HERSHEY_PLAIN, 1,
+                        (0, 0, 255),
+                        2)
             (nose_end_point2D, _) = cv2.projectPoints(np.array([(0.0, 0.0, 1000.0)]), rotation_vector,
                                                       translation_vector, camera_matrix, dist_coeffs)
 
             # 1フレーム前と今のlistの差分をframe_change_listに入れた
             #frame_change_list = []
-            #print(image_points)
+
             for p in range(len(image_points)):
                 if type(old_points) == type(image_points):
-                    section_change_list.append(
+                    print(int(image_points[p][0]) - int(old_points[p][0]))
+                    section_60_change_list.append(
                         [int(image_points[p][0]) - int(old_points[p][0]),
                          int(image_points[p][1]) - int(old_points[p][1])]
                     )
@@ -418,8 +393,6 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
 
             cv2.line(frame, p1, p2, (255, 0, 0), 2)
 
-
-
         # show the frame
         cv2.imshow("Frame", frame)
         key = cv2.waitKey(1) & 0xFF
@@ -428,89 +401,62 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
         if key == ord("q"):
             break
 
-        # 5秒おきに
-        if section_frame_cnt == 150:
-            # section_blink_list.append(blink_cnt)
-
-            all_change_list.append(section_change_list)
-
-            all_angle_list.append(section_angle_list)
-            #print(section_angle_list)
-
-            all_blink_list.append(blink_cnt)
-            section_change_list = []
-
-            # section_blink_list = []
-            section_angle_list = []
-            blink_cnt = 0
-            section_frame_cnt = 0
-
-    all_blink_list.append(blink_cnt)
-    section_cnt = 0
-    frame_cnt = 0
-    all_change_list.append(section_change_list)
-    all_angle_list.append(section_angle_list)
+        if all_frame_cnt == 1800:
+            print('finish_perfectly')
+            break
+    print(all_frame_cnt)
+    all_60_blink = blink_60_cnt
+    section_60_cnt = 0
+    frame_60_cnt = 0
+    all_60_change_list.append(section_60_change_list)
+    all_60_angle_list.append(section_60_angle_list)
 
     # print(change_list)
-    json_file_path = video_path+"cv.json"
+    json_file_path = str(video_path)+"cv.json"
     # 5秒おきのx,yの変化量をすべて足してまとめた
     data = {
-        'blink': all_blink_list,
-        'face': all_change_list,
-        'angle': all_angle_list
+        'blink_60': all_60_blink,
+        'face_60': all_60_change_list,
+        'angle_60': all_60_angle_list,
     }
     with open(json_file_path, 'w') as f:
         json.dump(data, f, indent=4)
     cap.release()
     cv2.destroyAllWindows()
 
-    return all_blink_list, all_change_list, all_angle_list
+    return all_60_blink, all_60_change_list, all_60_angle_list
 
 
 if __name__ == '__main__':
     p = pathlib.Path('.')
     movie_dir_path = './movie/face_eye_data/*/*.mp4'
     movie_list = [str(i) for i in list(p.glob(movie_dir_path))]
-    for i in movie_list:
-        file_path = i
-        print(file_path)
-        json_file_path = file_path+"conc.json"
-        # json_dir_path = './json_file/blink_data_/nedati/'
-        right_threshold = 0.2
-        left_threshold = 0.2
-        # 動画の閾値を得る
-        right_threshold, left_threshold = eye_open(file_path)
+    # for i in movie_list:
+    file_path = './movie_test/test_move2.mp4'
+    print(file_path)
+    json_file_path = file_path+"conc.json"
+    # json_dir_path = './json_file/blink_data_/nedati/'
+    right_threshold = 0.2
+    left_threshold = 0.2
+    # 動画の閾値を得る
+    right_threshold, left_threshold = eye_open(file_path)
 
-        # 動画の処理をするmain関数
-        all_blink_list, all_change_list, all_angle_list = cv_main(file_path, right_threshold, left_threshold)
-        print(all_change_list)
-        change_5_sec = change_5_second(all_change_list)
+    # 動画の処理をするmain関数
+    all_60_blink, all_60_change_list, all_60_angle_list = cv_main(file_path, right_threshold, left_threshold)
 
-        blink_frequency = section_frequency(all_blink_list)
-        change_frequency = section_frequency(change_5_sec)
+    # print(all_change_list)
 
-        c1 = section_concentration(blink_frequency)
-        c2 = section_concentration(change_frequency)
-        # w = 1 - ((r/tr + p/tp + y/ty) / 3))を返す
-        w = create_w_list(all_angle_list)
-        # c3 = section_concentration(list_looking_away)
+    # 顔の移動量の5秒間の頻度を求める
+    change_freq = change_frequency(all_60_change_list)
 
-        print("c1:", c1)
-        print("c2:", c2)
-        print("w:", w)
-        C_list = section_concentration_new(c1, c2, w)
-        print("C_List:", C_list)
+    # 瞬きの回数の5秒間の頻度を求める
+    blink_freq = blink_frequency(all_60_blink)
 
-        C = sum(C_list) / len(C_list)
-        print("C:", C)
-        data = {
-            'c1': c1,
-            'c2': c2,
-            'w': w,
-            'section_concentration': C_list,
-            'concentration': C,
-        }
+    print(change_freq)
+    print(blink_freq)
 
-        # p = pathlib.Path(json_dir_path).mkdir(parents=True, exist_ok=True)
-        with open(json_file_path, 'w')as f:
-            json.dump(data, f, indent=4)
+
+
+    #blink_frequency = section_frequency(all_5_blink_list)
+    #change_frequency = section_frequency(change_5_sec)
+
