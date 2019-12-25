@@ -105,71 +105,6 @@ def change_frequency(all_change):
     return x_y_all_frame/12
 
 
-# セクションごとの集中度を出す
-def section_concentration(frequency):
-    concentration_list = []
-    if np.array(frequency).ndim == 2:
-        for i in range(len(frequency)):
-            frequency[i] = sum(frequency[i])
-
-    for i in frequency:
-        try:
-            concentration_list.append(round((i - max(frequency)) / (min(frequency) - max(frequency)), 2))
-        except:
-            concentration_list.append(0)
-    return concentration_list
-
-
-# セクションごとの集中度を出す
-def section_concentration_new(c1, c2, w):
-    b_concentration = []
-    m_concentration = []
-    concentration = []
-    for i in range(len(c1)):
-        b_concentration.append(c1[i] * w[i])
-
-    for i in range(len(c2)):
-        m_concentration.append(c2[i] * (1 - w[i]))
-
-    for i in range(len(c1)):
-        concentration.append(b_concentration[i] + m_concentration[i])
-
-    return concentration
-
-
-# 5秒間のwを平均化したものを返す
-# w = 0 (r = 0, p = 0, y = 0)
-# w = 1 - ((y/tr + p/tp + r/ty) / 3)
-def create_w_list(all_angle_list):
-    angle_threshold_up = 150
-    angle_threshold_down = 175
-    angle_threshold_yaw = 20
-    angle_threshold_roll = 15
-    angle_threshold_pitch = 12.5
-    w_list = []
-    w = []
-    for j in all_angle_list:
-        section_w_list = []
-        for i in j:
-            if i[0] == 0 and i[1] == 0 and i[2] == 0:
-                section_w_list.append(0)
-            else:
-                section_w_list.append(
-                    1 - ((i[0] / angle_threshold_yaw + i[1] / angle_threshold_pitch + i[2] / angle_threshold_roll) / 3))
-        w_list.append(section_w_list)
-
-    for i in w_list:
-        sum_j = 0
-        for j in i:
-            sum_j += j
-        try:
-            w.append(sum_j / len(i))
-        except:
-            w.append(0)
-
-    return w
-
-
 # 返り値: 各1分おきのlistdata(瞬き, 顔の変化量, よそ見したときのフレーム数)
 # 引数: ファイルパス
 def cv_main(video_path, right_t_provisional, left_t_provisional):
@@ -192,12 +127,6 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
     all_frame_cnt = 0
     section_60_frame_cnt = 0
 
-    # 顔の変化のリスト
-    change_list = []
-
-
-
-
     # 5,60秒おきの顔の変化リスト
     section_60_change_list = []
 
@@ -206,9 +135,6 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
 
     # 5,60秒おきのすべての角度
     all_60_angle_list = []
-
-    # 60秒間のすべての瞬き
-    # all_60_blink = 0
 
     # 5,60秒おきのすべての顔の変化
     all_60_change_list = []
@@ -436,8 +362,7 @@ if __name__ == '__main__':
     print(file_path)
     json_file_path = file_path+"conc.json"
     # json_dir_path = './json_file/blink_data_/nedati/'
-    right_threshold = 0.2
-    left_threshold = 0.2
+
     # 動画の閾値を得る
     right_threshold, left_threshold = eye_open(file_path)
 
@@ -454,9 +379,4 @@ if __name__ == '__main__':
 
     print(change_freq)
     print(blink_freq)
-
-
-
-    #blink_frequency = section_frequency(all_5_blink_list)
-    #change_frequency = section_frequency(change_5_sec)
 

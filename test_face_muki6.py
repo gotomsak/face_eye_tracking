@@ -88,20 +88,6 @@ def eye_marker(face_mat, position):
         cv2.putText(face_mat, str(i), (x + 2, y - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
 
 
-# 5秒ごとの頻度を返す関数　回数 / 12
-def section_frequency(section_list):
-    section_frequency = []
-    if np.array(section_list).ndim == 2:
-        for i in section_list:
-            section_frequency.append([i[0] / 12, i[1] / 12])
-    else:
-        for i in section_list:
-            # 5/12?
-            section_frequency.append(i / 12)
-
-    return section_frequency
-
-
 # 5秒おきの顔の移動量に変える
 def change_5_second(all_change):
     change_5_second = []
@@ -506,14 +492,11 @@ if __name__ == '__main__':
     # 5秒おきの顔の変化量を全部足した
     change_5_sec = change_5_second(all_5_change_list)
 
-    #blink_frequency = section_frequency(all_5_blink_list)
-    #change_frequency = section_frequency(change_5_sec)
-
     c1 = section_concentration(all_5_blink_list, 1.9, 1.3)
     c2 = section_concentration(change_5_sec, 2464, 1189)
     # w = 1 - ((r/tr + p/tp + y/ty) / 3))を返す
+
     w = create_w_list(all_5_angle_list)
-    # c3 = section_concentration(list_looking_away)
 
     print("c1:", c1)
     print("c2:", c2)
