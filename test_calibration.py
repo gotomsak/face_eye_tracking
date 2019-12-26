@@ -358,7 +358,7 @@ if __name__ == '__main__':
     movie_dir_path = './movie/face_eye_data/*/*.mp4'
     movie_list = [str(i) for i in list(p.glob(movie_dir_path))]
     # for i in movie_list:
-    file_path = './movie_test/test_move2.mp4'
+    file_path = './movie_test/test_furiko.mp4'
     print(file_path)
     json_file_path = file_path+"conc.json"
     # json_dir_path = './json_file/blink_data_/nedati/'

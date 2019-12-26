@@ -115,7 +115,13 @@ def section_concentration(section_list, max_frequency, min_frequency):
     for i in section_list:
         print(i)
         try:
-            concentration_list.append(round((i - max_frequency) / (min_frequency - max_frequency), 2))
+            cons = round((i - max_frequency) / (min_frequency - max_frequency), 2)
+            if cons > 1:
+                concentration_list.append(1)
+            elif cons < 0:
+                concentration_list.append(0)
+            else:
+                concentration_list.append(cons)
 
         except:
             concentration_list.append(0)
@@ -127,14 +133,24 @@ def section_concentration_new(c1, c2, w):
     b_concentration = []
     m_concentration = []
     concentration = []
+    out_list = []
     for i in range(len(c1)):
-        b_concentration.append(c1[i] * w[i])
-
+        #b_concentration.append(c1[i] * w[i])
+        b_concentration.append(c1[i] * (1-w[i]))
     for i in range(len(c2)):
-        m_concentration.append(c2[i] * (1 - w[i]))
+        #m_concentration.append(c2[i] * (1 - w[i]))
+        if c2[i] * w[i] == 0:
+            out_list.append(i)
+        m_concentration.append(c2[i] * w[i])
 
     for i in range(len(c1)):
-        concentration.append(b_concentration[i] + m_concentration[i])
+        check_out = False
+        for j in out_list:
+            if j == i:
+                check_out = True
+                concentration.append(0)
+        if check_out == False:
+            concentration.append(b_concentration[i] + m_concentration[i])
 
     return concentration
 
@@ -367,8 +383,16 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
                 # section_angle_list.append([0, 0, 0])
             elif abs(yaw) < angle_threshold_yaw and abs(pitch) > angle_threshold_up and abs(
                     pitch) < angle_threshold_down and abs(roll) < angle_threshold_roll:
+                print("yaw:",abs(yaw - abs(fast_yaw)))
+                print("pitch:",abs(pitch - abs(fast_pitch)))
+                print("roll:",abs(roll - abs(fast_roll)))
+                print("yaw_:", yaw)
+                print("pitch_:", pitch)
+                print("roll_:", roll)
                 section_5_angle_list.append(
-                    [abs(yaw - fast_yaw), abs(pitch - (fast_pitch + angle_threshold_pitch)), abs(roll - fast_roll)])
+                    [abs(yaw - abs(fast_yaw)), abs(pitch - abs(fast_pitch)), abs(roll - abs(fast_roll))]
+                )
+                    # [abs(yaw - fast_yaw), abs(pitch - (fast_pitch + angle_threshold_pitch)), abs(roll - fast_roll)])
             else:
                 section_5_angle_list.append([angle_threshold_yaw, angle_threshold_pitch, angle_threshold_roll])
 
@@ -384,7 +408,7 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
 
             # 1フレーム前と今のlistの差分をframe_change_listに入れた
             #frame_change_list = []
-            print(image_points)
+            #print(image_points)
             for p in range(len(image_points)):
                 if type(old_points) == type(image_points):
                     section_5_change_list.append(
@@ -408,7 +432,7 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
             section_5_change_list.append(None)
 
         # show the frame
-        cv2.imshow("Frame", frame)
+        #cv2.imshow("Frame", frame)
         key = cv2.waitKey(1) & 0xFF
 
         # if the `q` key was pressed, break from the loop
@@ -444,6 +468,9 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
     json_file_path = video_path+"cv.json"
     # 5秒おきのx,yの変化量をすべて足してまとめた
     data = {
+        'fast_yaw': fast_yaw,
+        'fast_pitch': fast_pitch,
+        'fast_roll': fast_roll,
         'blink_5': all_5_blink_list,
         'face_5': all_5_change_list,
         'angle_5': all_5_angle_list
@@ -467,12 +494,12 @@ if __name__ == '__main__':
     json_file_path2 = file_path + "threshold.json"
 
     # json_dir_path = './json_file/blink_data_/nedati/'
-    right_threshold = 0.2
-    left_threshold = 0.2
+    # right_threshold = 0.2
+    # left_threshold = 0.2
     # 動画の閾値を得る
     right_threshold, left_threshold = eye_open(file_path)
     data2 = {
-        'right_threshold':right_threshold,
+        'right_threshold': right_threshold,
         'left_threshold': left_threshold
     }
     with open(json_file_path2, 'w')as f:
