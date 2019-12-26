@@ -361,6 +361,7 @@ if __name__ == '__main__':
     file_path = './movie_test/test_furiko.mp4'
     print(file_path)
     json_file_path = file_path+"conc.json"
+    json_file_path2 = file_path + "freq.json"
     # json_dir_path = './json_file/blink_data_/nedati/'
 
     # 動画の閾値を得る
@@ -376,6 +377,12 @@ if __name__ == '__main__':
 
     # 瞬きの回数の5秒間の頻度を求める
     blink_freq = blink_frequency(all_60_blink)
+    data = {
+        'change_freq': change_freq,
+        'blink_freq': blink_freq
+    }
+    with open(json_file_path2, 'w') as f:
+        json.dump(data,f, indent=4)
 
     print(change_freq)
     print(blink_freq)
