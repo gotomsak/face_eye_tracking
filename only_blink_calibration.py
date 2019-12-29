@@ -16,13 +16,13 @@ def eye_open(file_name):
     cap = cv2.VideoCapture(file_name)
     face_cascade = cv2.CascadeClassifier('classification_tool/haarcascade_frontalface_alt2.xml')
     face_parts_detector = dlib.shape_predictor('classification_tool/shape_predictor_68_face_landmarks.dat')
-
+    frame_cnt = 0
     right_eye_list = []
     left_eye_list = []
 
     while True:
         tick = cv2.getTickCount()
-
+        frame_cnt += 1
         ret, rgb = cap.read()
         try:
             gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
@@ -55,6 +55,9 @@ def eye_open(file_name):
 
         fps = cv2.getTickFrequency() / (cv2.getTickCount() - tick)
 
+        if frame_cnt == 150:
+            break
+
         # cv2.imshow('frame', rgb)
 
         if cv2.waitKey(1) == 27:
@@ -62,8 +65,9 @@ def eye_open(file_name):
 
 
     right_ave = sum(i for i in right_eye_list) / len(right_eye_list)
+    print(right_eye_list[0])
     left_ave = sum(i for i in left_eye_list) / len(left_eye_list)
-
+    print(left_eye_list[0])
     right_s = math.sqrt((1 / len(right_eye_list) * pow(sum(i - right_ave for i in right_eye_list), 2)))
     left_s = math.sqrt((1 / len(left_eye_list) * pow(sum(i - left_ave for i in left_eye_list), 2)))
     right_threshold = right_ave - right_s
@@ -257,22 +261,23 @@ if __name__ == '__main__':
     movie_dir_path = './movie/face_eye_data/*/*.mp4'
     movie_list = [str(i) for i in list(p.glob(movie_dir_path))]
     # for i in movie_list:
-    file_path = './movie_test/test_move2.mp4'
+    file_path = './movie_test/test_move3.mp4'
     print(file_path)
     json_file_path = "blink_only_"+file_path+"conc.json"
     # json_dir_path = './json_file/blink_data_/nedati/'
 
     # 動画の閾値を得る
     right_threshold, left_threshold = eye_open(file_path)
-
-    # 動画の処理をするmain関数
-    all_60_blink = cv_main(file_path, right_threshold, left_threshold)
-
-    # print(all_change_list)
-
-
-    # 瞬きの回数の5秒間の頻度を求める
-    blink_freq = blink_frequency(all_60_blink)
-
-    print(blink_freq)
+    print(right_threshold, left_threshold)
+    #
+    # # 動画の処理をするmain関数
+    # all_60_blink = cv_main(file_path, right_threshold, left_threshold)
+    #
+    # # print(all_change_list)
+    #
+    #
+    # # 瞬きの回数の5秒間の頻度を求める
+    # blink_freq = blink_frequency(all_60_blink)
+    #
+    # print(blink_freq)
 

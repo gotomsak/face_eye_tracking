@@ -16,13 +16,13 @@ def eye_open(file_name):
     cap = cv2.VideoCapture(file_name)
     face_cascade = cv2.CascadeClassifier('classification_tool/haarcascade_frontalface_alt2.xml')
     face_parts_detector = dlib.shape_predictor('classification_tool/shape_predictor_68_face_landmarks.dat')
-
+    frame_cnt = 0
     right_eye_list = []
     left_eye_list = []
 
     while True:
         tick = cv2.getTickCount()
-
+        frame_cnt += 1
         ret, rgb = cap.read()
         try:
             gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
@@ -56,6 +56,8 @@ def eye_open(file_name):
         fps = cv2.getTickFrequency() / (cv2.getTickCount() - tick)
 
         # cv2.imshow('frame', rgb)
+        if frame_cnt==150:
+            break
 
         if cv2.waitKey(1) == 27:
             break  # esc to quit
