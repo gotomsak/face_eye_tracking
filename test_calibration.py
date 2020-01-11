@@ -181,8 +181,7 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
             gray, scaleFactor=1.11, minNeighbors=3, minSize=(100, 100))
         rects = detector(gray, 0)
 
-        if len(rects) == 0:
-            break
+
 
         for rect in rects:
             rect_frag = True
@@ -321,10 +320,11 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
             p2 = (int(nose_end_point2D[0][0][0]), int(nose_end_point2D[0][0][1]))
 
             cv2.line(frame, p1, p2, (255, 0, 0), 2)
-
+        print("all_frame ",all_frame_cnt)
         # show the frame
         cv2.imshow("Frame", frame)
         key = cv2.waitKey(1) & 0xFF
+
 
         # if the `q` key was pressed, break from the loop
         if key == ord("q"):
@@ -361,7 +361,7 @@ if __name__ == '__main__':
     movie_dir_path = './movie/face_eye_data/*/*.mp4'
     movie_list = [str(i) for i in list(p.glob(movie_dir_path))]
     # for i in movie_list:
-    file_path = './movie_test/test_furiko.mp4'
+    file_path = './movie/Production/takahata/red.mp4'
     print(file_path)
     json_file_path = file_path+"conc.json"
     json_file_path2 = file_path + "freq.json"

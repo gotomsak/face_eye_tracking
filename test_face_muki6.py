@@ -336,6 +336,7 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
                     COUNTER = 0
                 #cv2.imshow("gray", face_gray_resized)
 
+            # 顔のパーツの位置をxyz軸で固定, 回転行列へ
             model_points = np.array([
                 (0.0, 0.0, 0.0),
                 (0.0, -330.0, -65.0),
@@ -350,6 +351,8 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
             focal_length = size[1]
             center = (size[1] // 2, size[0] // 2)
 
+            # カメラの焦点位置, レンズの歪みを
+            # 焦点距離 focal_length, 画像の中心center
             camera_matrix = np.array([
                 [focal_length, 0, center[0]],
                 [0, focal_length, center[1]],
@@ -358,7 +361,7 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
 
             dist_coeffs = np.zeros((4, 1))
 
-            # 物体の姿勢を求める
+            # 物体の姿勢を求める 成功, 回転ベクトル, 並進ベクトル（平行移動行列？）を返す　ロドリゲスの公式
             (success, rotation_vector, translation_vector) = cv2.solvePnP(model_points, image_points, camera_matrix,
                                                                           dist_coeffs, flags=cv2.SOLVEPNP_ITERATIVE)
             # 回転行列と回転ベクトルを相互に変換
@@ -383,8 +386,8 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
                 fast_pitch = abs(pitch)
                 fast_roll = abs(roll)
                 # section_angle_list.append([0, 0, 0])
-            elif abs(yaw) < angle_threshold_yaw and abs(pitch) > angle_threshold_up and abs(
-                    pitch) < angle_threshold_down and abs(roll) < angle_threshold_roll:
+            elif abs(yaw) < angle_threshold_yaw and abs(pitch) > angle_threshold_up - 12.5 and abs(
+                    pitch) < angle_threshold_down + 12.5 and abs(roll) < angle_threshold_roll:
                 print("yaw:",abs(yaw - abs(fast_yaw)))
                 print("pitch:",abs(pitch - abs(fast_pitch)))
                 print("roll:",abs(roll - abs(fast_roll)))
@@ -413,6 +416,7 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
             #print(image_points)
             for p in range(len(image_points)):
                 if type(old_points) == type(image_points):
+                    # print(int(image_points[p][0]) - int(old_points[p][0]))
                     section_5_change_list.append(
                         [int(image_points[p][0]) - int(old_points[p][0]),
                          int(image_points[p][1]) - int(old_points[p][1])]
@@ -446,6 +450,7 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
             # section_blink_list.append(blink_cnt)
 
             all_5_change_list.append(section_5_change_list)
+            print(all_5_change_list)
 
             all_5_angle_list.append(section_5_angle_list)
             #print(section_angle_list)
@@ -490,7 +495,7 @@ if __name__ == '__main__':
     movie_dir_path = './movie/face_eye_data/*/*.mp4'
     movie_list = [str(i) for i in list(p.glob(movie_dir_path))]
     # for i in movie_list:
-    file_path = './movie_test/test_move5.mp4'
+    file_path = './movie/Production/takahata/syuutyuu.mp4'
     print(file_path)
     json_file_path = file_path+"conc.json"
     json_file_path2 = file_path + "threshold.json"
@@ -520,9 +525,9 @@ if __name__ == '__main__':
 
     # 5秒おきの顔の変化量を全部足した
     change_5_sec = change_5_second(all_5_change_list)
-
-    c1 = section_concentration(all_5_blink_list, 1.9, 1.3)
-    c2 = section_concentration(change_5_sec, 2464, 1189)
+    print(change_5_sec)
+    c1 = section_concentration(all_5_blink_list, 1.41, 0.83)
+    c2 = section_concentration(change_5_sec, 204, 111)
     # w = 1 - ((r/tr + p/tp + y/ty) / 3))を返す
 
     w = create_w_list(all_5_angle_list)

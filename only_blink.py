@@ -50,12 +50,12 @@ def eye_open(file_name):
             right_eye_list.append(right_eye_ear)
             leftEyeHull = cv2.convexHull(face_parts[42:48])
             rightEyeHull = cv2.convexHull(face_parts[36:42])
-            cv2.drawContours(rgb, [leftEyeHull], -1, (0, 255, 0), 1)
-            cv2.drawContours(rgb, [rightEyeHull], -1, (0, 255, 0), 1)
+            # cv2.drawContours(rgb, [leftEyeHull], -1, (0, 255, 0), 1)
+            # cv2.drawContours(rgb, [rightEyeHull], -1, (0, 255, 0), 1)
 
         fps = cv2.getTickFrequency() / (cv2.getTickCount() - tick)
 
-        # cv2.imshow('frame', rgb)
+        cv2.imshow('frame', rgb)
 
         if cv2.waitKey(1) == 27:
             break  # esc to quit
@@ -166,12 +166,18 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
 
             shape = predictor(gray, rect)
             shape = face_utils.shape_to_np(shape)
+            image_points = np.array([tuple(shape[30]), tuple(shape[8]), tuple(shape[36]), tuple(shape[45]),
+                                     tuple(shape[48]), tuple(shape[54])])
 
+            for (x, y) in image_points:
+                cv2.circle(frame, (x, y), 5, (0, 0, 255), -1)
 
+            image_points = np.array([tuple(shape[30]), tuple(shape[8]), tuple(shape[36]), tuple(shape[45]),
+                                     tuple(shape[48]), tuple(shape[54])], dtype='double')
 
             if len(faces) == 1:
                 x, y, w, h = faces[0, :]
-                cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                # cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
                 face_gray = gray[y:(y + h), x:(x + w)]
                 scale = 480 / h
                 face_gray_resized = cv2.resize(face_gray, dsize=None, fx=scale, fy=scale)
@@ -259,15 +265,15 @@ if __name__ == '__main__':
     # json_dir_path = './json_file/blink_data_/nedati/'
 
     # 動画の閾値を得る
-    right_threshold, left_threshold = eye_open(file_path)
-    data2 = {
-        'right_threshold':right_threshold,
-        'left_threshold': left_threshold
-    }
-    with open(json_file_path2, 'w')as f:
-        json.dump(data2, f, indent=4)
-    # 動画の処理をするmain関数
-    all_5_blink_list= cv_main(file_path, right_threshold, left_threshold)
+    #right_threshold, left_threshold = eye_open(0)
+    # data2 = {
+    #     'right_threshold':right_threshold,
+    #     'left_threshold': left_threshold
+    # }
+    # with open(json_file_path2, 'w')as f:
+    #     json.dump(data2, f, indent=4)
+    # # 動画の処理をするmain関数
+    all_5_blink_list= cv_main(0,0.2, 0.2)
 
     # # print(all_change_list)
     # load_data = open("movie_test/test_move4.mp4cv.json", 'r')

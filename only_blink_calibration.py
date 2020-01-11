@@ -243,13 +243,13 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
     section_60_cnt = 0
     frame_60_cnt = 0
     # print(change_list)
-    json_file_path = "blink_only_"+str(video_path)+"cv.json"
+    #json_file_path = "blink_only_"+str(video_path)+"cv.json"
     # 5秒おきのx,yの変化量をすべて足してまとめた
     data = {
         'blink_60': all_60_blink,
     }
-    with open(json_file_path, 'w') as f:
-        json.dump(data, f, indent=4)
+    # with open(json_file_path, 'w') as f:
+    #     json.dump(data, f, indent=4)
     cap.release()
     cv2.destroyAllWindows()
 
@@ -261,14 +261,20 @@ if __name__ == '__main__':
     movie_dir_path = './movie/face_eye_data/*/*.mp4'
     movie_list = [str(i) for i in list(p.glob(movie_dir_path))]
     # for i in movie_list:
-    file_path = './movie_test/test_move3.mp4'
+    file_path = './movie/Production/takahata/blue.mp4'
     print(file_path)
-    json_file_path = "blink_only_"+file_path+"conc.json"
+    json_file_path = file_path+"thre.json"
     # json_dir_path = './json_file/blink_data_/nedati/'
 
     # 動画の閾値を得る
     right_threshold, left_threshold = eye_open(file_path)
     print(right_threshold, left_threshold)
+    data={
+        "right": right_threshold,
+        "left": left_threshold
+    }
+    with open(json_file_path, 'w')as f:
+        json.dump(data, f, indent=4)
     #
     # # 動画の処理をするmain関数
     # all_60_blink = cv_main(file_path, right_threshold, left_threshold)
