@@ -91,22 +91,21 @@ def eye_marker(face_mat, position):
 
 
 # 5秒おきの顔の移動量に変える
-def change_5_second(all_change):
+def change_5_second(all_change, max_x_y):
     change_5_second = []
 
     for z in all_change:
         x_y_all = 0
-        none_check = False
         for i in z:
+            none_check = False
             if i == None:
-                change_5_second.append(None)
+                x_y_all += max_x_y
                 none_check = True
-                break
 
-            x_y_all += abs(i[0]) + abs(i[1])
+            if none_check == False:
+                x_y_all += abs(i[0]) + abs(i[1])
 
-        if none_check == False:
-            change_5_second.append(x_y_all)
+        change_5_second.append(x_y_all)
     return change_5_second
 
 
@@ -175,7 +174,7 @@ def create_w_list(all_angle_list):
                 section_w_list.append(0)
             else:
                 section_w_list.append(
-                    1 - ((i[0] / angle_threshold_yaw + i[1] / angle_threshold_pitch + i[2] / angle_threshold_roll) / 3))
+                    1 - (((i[0] / angle_threshold_yaw) + (i[1] / angle_threshold_pitch) + (i[2] / angle_threshold_roll)) / 3))
         w_list.append(section_w_list)
 
     for i in w_list:
@@ -388,14 +387,14 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
                 # section_angle_list.append([0, 0, 0])
             elif abs(yaw) < angle_threshold_yaw and abs(pitch) > angle_threshold_up - 12.5 and abs(
                     pitch) < angle_threshold_down + 12.5 and abs(roll) < angle_threshold_roll:
-                print("yaw:",abs(yaw - abs(fast_yaw)))
-                print("pitch:",abs(pitch - abs(fast_pitch)))
-                print("roll:",abs(roll - abs(fast_roll)))
+                print("yaw:",abs(abs(yaw) - abs(fast_yaw)))
+                print("pitch:",abs(abs(pitch) - abs(fast_pitch)))
+                print("roll:",abs(abs(roll) - abs(fast_roll)))
                 print("yaw_:", yaw)
                 print("pitch_:", pitch)
                 print("roll_:", roll)
                 section_5_angle_list.append(
-                    [abs(yaw - abs(fast_yaw)), abs(pitch - abs(fast_pitch)), abs(roll - abs(fast_roll))]
+                    [abs(abs(yaw) - abs(fast_yaw)), abs(abs(pitch) - abs(fast_pitch)), abs(abs(roll) - abs(fast_roll))]
                 )
                     # [abs(yaw - fast_yaw), abs(pitch - (fast_pitch + angle_threshold_pitch)), abs(roll - fast_roll)])
             else:
@@ -436,6 +435,7 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
         if rect_frag == False:
             section_5_angle_list.append([angle_threshold_yaw, angle_threshold_pitch, angle_threshold_roll])
             section_5_change_list.append(None)
+            blink_5_cnt += 1
 
         # show the frame
         #cv2.imshow("Frame", frame)
@@ -491,15 +491,19 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
 
 
 if __name__ == '__main__':
-    p = pathlib.Path('.')
-    movie_dir_path = './movie/face_eye_data/*/*.mp4'
-    movie_list = [str(i) for i in list(p.glob(movie_dir_path))]
+    # p = pathlib.Path('.')
+    # movie_dir_path = './movie/face_eye_data/*/*.mp4'
+    # movie_list = [str(i) for i in list(p.glob(movie_dir_path))]
     # for i in movie_list:
-    file_path = './movie/Production/takahata/syuutyuu.mp4'
+    file_path = './movie/Production/fuma/game.mp4'
     print(file_path)
     json_file_path = file_path+"conc.json"
     json_file_path2 = file_path + "threshold.json"
-
+    max_change = 3668.9
+    min_change = 2921.5
+    max_blink = 3.25
+    min_blink = 2.0
+    max_x_y = 57
     # json_dir_path = './json_file/blink_data_/nedati/'
     # right_threshold = 0.2
     # left_threshold = 0.2
@@ -524,10 +528,10 @@ if __name__ == '__main__':
     # all_5_angle_list = load_data['angle_5']
 
     # 5秒おきの顔の変化量を全部足した
-    change_5_sec = change_5_second(all_5_change_list)
+    change_5_sec = change_5_second(all_5_change_list, max_x_y)
     print(change_5_sec)
-    c1 = section_concentration(all_5_blink_list, 1.41, 0.83)
-    c2 = section_concentration(change_5_sec, 204, 111)
+    c1 = section_concentration(all_5_blink_list, max_blink, min_blink)
+    c2 = section_concentration(change_5_sec, max_change, min_change)
     # w = 1 - ((r/tr + p/tp + y/ty) / 3))を返す
 
     w = create_w_list(all_5_angle_list)
@@ -537,15 +541,22 @@ if __name__ == '__main__':
     print("w:", w)
     C_list = section_concentration_new(c1, c2, w)
     print("C_List:", C_list)
+    C1 = sum(c1)/len(c1)
+    C2 = sum(c2)/len(c2)
+    C3 = sum(C_list) / len(C_list)
 
-    C = sum(C_list) / len(C_list)
-    print("C:", C)
+    print("C1:", C1)
+    print("C2:", C2)
+    print("C3:", C3)
+
     data = {
         'c1': c1,
         'c2': c2,
         'w': w,
         'section_concentration': C_list,
-        'concentration': C,
+        'concentration1': C1,
+        'concentration2': C2,
+        'concentration3': C3,
     }
 
     # p = pathlib.Path(json_dir_path).mkdir(parents=True, exist_ok=True)

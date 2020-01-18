@@ -100,12 +100,15 @@ def blink_frequency(blink_num):
 # 5秒おきの頻度を返す
 def change_frequency(all_change):
     change_60_second = []
+    max_x_y = 0
     x_y_all_frame = 0
     for z in all_change:
         for i in z:
+            if max_x_y < abs(i[0])+abs(i[1]):
+                max_x_y = abs(i[0])+abs(i[1])
             x_y_all_frame += abs(i[0])+abs(i[1])
 
-    return x_y_all_frame/12
+    return x_y_all_frame/12, max_x_y
 
 
 # 返り値: 各1分おきのlistdata(瞬き, 顔の変化量, よそ見したときのフレーム数)
@@ -361,7 +364,7 @@ if __name__ == '__main__':
     movie_dir_path = './movie/face_eye_data/*/*.mp4'
     movie_list = [str(i) for i in list(p.glob(movie_dir_path))]
     # for i in movie_list:
-    file_path = './movie/Production/takahata/red.mp4'
+    file_path = './movie/Production/fuma/red.mp4'
     print(file_path)
     json_file_path = file_path+"conc.json"
     json_file_path2 = file_path + "freq.json"
@@ -376,12 +379,13 @@ if __name__ == '__main__':
     # print(all_change_list)
 
     # 顔の移動量の5秒間の頻度を求める
-    change_freq = change_frequency(all_60_change_list)
+    change_freq, max_x_y = change_frequency(all_60_change_list)
 
     # 瞬きの回数の5秒間の頻度を求める
     blink_freq = blink_frequency(all_60_blink)
     data = {
         'change_freq': change_freq,
+        'change_max_x_y': max_x_y,
         'blink_freq': blink_freq
     }
     with open(json_file_path2, 'w') as f:
