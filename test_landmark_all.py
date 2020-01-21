@@ -51,11 +51,13 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
             shape = predictor(gray, rect)
             shape = face_utils.shape_to_np(shape)
 
-            for (x, y) in shape:
-                cv2.circle(frame, (x, y), 3, (0, 0, 255), -1)
+            # for (x, y) in shape:
+            #     cv2.circle(frame, (x, y), 3, (0, 0, 255), -1)
 
             image_points = np.array([tuple(shape[30]), tuple(shape[8]), tuple(shape[36]), tuple(shape[45]),
-                                     tuple(shape[48]), tuple(shape[54])], dtype='double')
+                                     tuple(shape[48]), tuple(shape[54])])
+            for (x, y) in image_points:
+                cv2.circle(frame, (x, y), 5, (0, 0, 255), -1)
 
             if len(faces) == 1:
                 x, y, w, h = faces[0, :]

@@ -7,7 +7,7 @@
 <body>
 <div class="parent">
     <video ref="video" id="video" width="1280" height="720" autoplay muted playsinline></video>
-    <div class="parent-button">
+    <div>
         <button onclick="subStartButton()" id="dis">start</button>
         <button onclick="stopButton()">stop</button>
         <button onclick="setLimit1()">1分で終わる</button>
@@ -15,15 +15,43 @@
         <button onclick="setLimit10()">10分で終わる</button>
         <button onclick="setThreshold()">目の閾値を取る</button>
         <button onclick="setLimitNull()">自分でstopを押す(defalut)</button>
+        <div id="state"></div>
+        <div id="timer"></div>
+        <div id="limit"></div>
+        <div id="subtimer"></div>
+        <div>メニューを選んでstartを押すと3秒後に録画を開始します, 録画開始後の最初の1秒間は瞬きせずに正面を向いてください</div>
+
     </div>
 
-    <ul class="yoko">
-        <li id="state"></li>
-        <li id="timer"></li>
-        <li id="limit"></li>
-        <li id="subtimer"></li>
-        <li>メニューを選んでstartを押すと3秒後に録画を開始します, 録画開始後の最初の1秒間は瞬きせずに正面を向いてください</li>
-    </ul>
+
+    <form name="form">
+        <input type="text" name="username" id="username" value="username">
+<!--        <input type="text" name="userstate" id="user_state" value="state">-->
+        <select name="example1" id="userstate">
+            <option value="concentration">集中</option>
+            <option value="watch">動画見なら</option>
+            <option value="game">ゲームしながら</option>
+        </select>
+        <input type="button" value="決定！" onclick="stateUser()">
+    </form>
+    <table class="Table">
+        <tbody>
+        <tr>
+            <th scope="row">名前</th>
+            <td>
+                <div id="output_user"></div>
+            </td>
+
+        </tr>
+        <tr>
+            <th scope="row">state</th>
+            <td>
+                <div id="output_user_state"></div>
+            </td>
+
+        </tr>
+        </tbody>
+    </table>
 
 </div>
 
@@ -46,6 +74,8 @@
     let limit10 = 600
     let limit1 = 1
     let limit60 = 60
+    let username = 'test'
+    let user_state = 'test'
 
     let flag = document.getElementById('state')
     let setLimit = null
@@ -56,6 +86,22 @@
         initVideo()
         timerId.innerHTML = "time: " + time
         viewLimit.innerHTML = "自分でstop"
+    }
+
+    function stateUser() {
+        username = document.form.username.value
+        user_state = document.form.userstate.value
+        document.getElementById('output_user').innerHTML = username;
+        document.getElementById('output_user_state').innerHTML = user_state;
+        if (user_state === "watch"){
+            window.open('https://docs.google.com/forms/d/e/1FAIpQLSelWcrzavp_IdiH-jW5-fZB1i6ZZb62eVkRWbjnhqqUqeXuLw/formResponse', '_blank');
+        }
+        if (user_state === "concentration"){
+            window.open('https://docs.google.com/forms/d/e/1FAIpQLScrkHEtmT8Ah1j4HITaj2xUgsa_qpi9WIlPSUshCkp5Qbzwhw/viewform', '_blank');
+        }
+        if (user_state === "game"){
+            window.open('https://docs.google.com/forms/d/e/1FAIpQLSe4UvuTz0aVDQo5SD2wjRIgPRxib4yz3M18a9MoaWlXNah2EQ/formResponse', '_blank');
+        }
     }
 
     function setLimit1() {
@@ -156,7 +202,7 @@
         videoInput.setAttribute("width", w)
         videoInput.setAttribute("height", h)
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            navigator.mediaDevices.getUserMedia({video: {width:1280, height: 720}}).then(stream => {
+            navigator.mediaDevices.getUserMedia({video: {width: 1280, height: 720}}).then(stream => {
                 let options = {
                     videoBitesPerSecond: 2500000,
                     mimeType: 'video/webm;codecs=h264'
@@ -167,7 +213,7 @@
                     let blob = new Blob([e.data], {type: 'video/mp4'})
                     let audio = document.createElement('audio');
                     audio.setAttribute("width", w)
-                    audio.setAttribute("height",h)
+                    audio.setAttribute("height", h)
                     let audioUrl = window.URL.createObjectURL(blob)
 
                     //this.$store.state.movieFile = e.data // errorでた
@@ -176,7 +222,7 @@
                     document.body.appendChild(a);
                     a.style = 'display: none';
                     a.href = audioUrl;
-                    a.download = 'test.mp4';
+                    a.download = username + '_' + user_state + '.mp4';
                     a.click();
                     window.URL.revokeObjectURL(audioUrl);
                 }
@@ -194,7 +240,7 @@
 
     }
 
-    .yoko li{
+    .yoko li {
         float: left;
         list-style: none;
         margin: 30px;
