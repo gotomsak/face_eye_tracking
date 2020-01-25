@@ -24,12 +24,16 @@ def save_concentration_images(x_c, y_c, save_name):
 
     plt.scatter(x_c, y_c)
     plt.plot(x_c, clf.predict(x_df))
+
     plt.savefig(save_name + '.png')
+    corr = np.corrcoef(x_c, y_c)
     fw = open(save_name + '.json', 'w')
+
     save_result = {
         "回帰係数= ": clf.coef_.tolist(),
         "切片= ": clf.intercept_.tolist(),
-        "決定係数= ": clf.score(x_df, y_df)
+        "決定係数= ": clf.score(x_df, y_df),
+        "相関係数= ": corr[0, 1]
     }
     json.dump(save_result, fw, indent=4, ensure_ascii=False)
     return x_c, y_c
@@ -88,8 +92,8 @@ if __name__ == '__main__':
     cgx_all = list(itertools.chain.from_iterable(cgx_all))
     cgy_all = list(itertools.chain.from_iterable(cgy_all))
 
-    cwx_all, cwy_all = save_concentration_images(cwx_all, cwy_all, path_root+"cw")
-    cgx_all, cgy_all = save_concentration_images(cgx_all, cgy_all, path_root+"cg")
+    cwx_all, cwy_all = save_concentration_images(cwx_all, cwy_all, path_root + "cw")
+    cgx_all, cgy_all = save_concentration_images(cgx_all, cgy_all, path_root + "cg")
 
     # for i in list(p.glob('*/*concentration.mp4conc*')):
     #     print(str(i))
