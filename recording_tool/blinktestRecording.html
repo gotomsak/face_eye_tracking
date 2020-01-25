@@ -31,6 +31,8 @@
             <option value="concentration">集中</option>
             <option value="watch">動画見なら</option>
             <option value="game">ゲームしながら</option>
+            <option value="red">キャリブレーション(赤)</option>
+            <option value="blue">キャリブレーション(青)</option>
         </select>
         <input type="button" value="決定！" onclick="stateUser()">
     </form>
@@ -101,6 +103,12 @@
         }
         if (user_state === "game"){
             window.open('https://docs.google.com/forms/d/e/1FAIpQLSe4UvuTz0aVDQo5SD2wjRIgPRxib4yz3M18a9MoaWlXNah2EQ/formResponse', '_blank');
+        }
+        if (user_state === "red"){
+            window.open('red.html', '_blank');
+        }
+        if (user_state === "blue"){
+            window.open('blue.html', '_blank');
         }
     }
 

@@ -384,9 +384,11 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
                 fast_yaw = abs(yaw)
                 fast_pitch = abs(pitch)
                 fast_roll = abs(roll)
+                angle_threshold_up = fast_pitch - 12.5
+                angle_threshold_down = fast_pitch + 12.5
                 # section_angle_list.append([0, 0, 0])
-            elif abs(yaw) < angle_threshold_yaw and abs(pitch) > angle_threshold_up - 12.5 and abs(
-                    pitch) < angle_threshold_down + 12.5 and abs(roll) < angle_threshold_roll:
+            elif abs(yaw) < angle_threshold_yaw and abs(pitch) > angle_threshold_up and abs(
+                    pitch) < angle_threshold_down and abs(roll) < angle_threshold_roll:
                 print("yaw:",abs(abs(yaw) - abs(fast_yaw)))
                 print("pitch:",abs(abs(pitch) - abs(fast_pitch)))
                 print("roll:",abs(abs(roll) - abs(fast_roll)))
@@ -438,7 +440,7 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
             blink_5_cnt += 1
 
         # show the frame
-        #cv2.imshow("Frame", frame)
+        cv2.imshow("Frame", frame)
         key = cv2.waitKey(1) & 0xFF
 
         # if the `q` key was pressed, break from the loop
@@ -495,15 +497,15 @@ if __name__ == '__main__':
     # movie_dir_path = './movie/face_eye_data/*/*.mp4'
     # movie_list = [str(i) for i in list(p.glob(movie_dir_path))]
     # for i in movie_list:
-    file_path = './movie/Production/fuma/game.mp4'
+    file_path = './movie/Production/userG/tomono_game.mp4'
     print(file_path)
     json_file_path = file_path+"conc.json"
     json_file_path2 = file_path + "threshold.json"
-    max_change = 3668.9
-    min_change = 2921.5
-    max_blink = 3.25
-    min_blink = 2.0
-    max_x_y = 57
+    max_change = 2775.2
+    min_change = 1051.6
+    max_blink = 6.4
+    min_blink = 5.0
+    max_x_y = 29
     # json_dir_path = './json_file/blink_data_/nedati/'
     # right_threshold = 0.2
     # left_threshold = 0.2

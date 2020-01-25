@@ -184,7 +184,8 @@ def cv_main(video_path, right_t_provisional, left_t_provisional):
             gray, scaleFactor=1.11, minNeighbors=3, minSize=(100, 100))
         rects = detector(gray, 0)
 
-
+        # if all_frame_cnt < 100:
+        #     continue
 
         for rect in rects:
             rect_frag = True
@@ -364,7 +365,7 @@ if __name__ == '__main__':
     movie_dir_path = './movie/face_eye_data/*/*.mp4'
     movie_list = [str(i) for i in list(p.glob(movie_dir_path))]
     # for i in movie_list:
-    file_path = './movie/Production/fuma/red.mp4'
+    file_path = './movie/Production/userG/tomono_red.mp4'
     print(file_path)
     json_file_path = file_path+"conc.json"
     json_file_path2 = file_path + "freq.json"
