@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<div class="parent">
+    <video ref="video" id="video" width="1280" height="720" autoplay muted playsinline></video>
+    <div>
+        <button onclick="subStartButton()" id="dis">start</button>
+        <button onclick="stopButton()">stop</button>
+        <button onclick="setLimit1()">1分で終わる</button>
+        <button onclick="setLimit5()">5分で終わる</button>
+        <button onclick="setLimit10()">10分で終わる</button>
+        <button onclick="setThreshold()">目の閾値を取る</button>
+        <button onclick="setLimitNull()">自分でstopを押す(defalut)</button>
+        <div id="state"></div>
+        <div id="timer"></div>
+        <div id="limit"></div>
+        <div id="subtimer"></div>
+        <div>メニューを選んでstartを押すと3秒後に録画を開始します, 録画開始後の最初の1秒間は瞬きせずに正面を向いてください</div>
+
+    </div>
+
+
+    <form name="form">
+        <input type="text" name="username" id="username" value="username">
+<!--        <input type="text" name="userstate" id="user_state" value="state">-->
+        <select name="example1" id="userstate">
+            <option value="concentration">集中</option>
+            <option value="watch">動画見なら</option>
+            <option value="game">ゲームしながら</option>
+            <option value="red">キャリブレーション(赤)</option>
+            <option value="blue">キャリブレーション(青)</option>
+        </select>
+        <input type="button" value="決定！" onclick="stateUser()">
+    </form>
+    <table class="Table">
+        <tbody>
+        <tr>
+            <th scope="row">名前</th>
+            <td>
+                <div id="output_user"></div>
+            </td>
+
+        </tr>
+        <tr>
+            <th scope="row">state</th>
+            <td>
+                <div id="output_user_state"></div>
+            </td>
+
+        </tr>
+        </tbody>
+    </table>
+
+</div>
+
+</body>
+<script>
+    let videoInput
+    let w
+    let h
+    let cnt
+    let mediaRecorder
+    let blob
+    let startFrag = false
+    let createClock
+    let subCreateClock
+    let time = 0
+    let timerId = document.getElementById('timer')
+    let subTime = 0
+    let subTimerId = document.getElementById('subtimer')
+    let limit5 = 300
+    let limit10 = 600
+    let limit1 = 1
+    let limit60 = 60
+    let username = 'test'
+    let user_state = 'test'
+
+    let flag = document.getElementById('state')
+    let setLimit = null
+    let viewLimit = document.getElementById('limit')
+    let dis = document.getElementById('dis')
+
+    window.onload = function () {
+        initVideo()
+        timerId.innerHTML = "time: " + time
+        viewLimit.innerHTML = "自分でstop"
+    }
+
+    function stateUser() {
+        username = document.form.username.value
+        user_state = document.form.userstate.value
+        document.getElementById('output_user').innerHTML = username;
+        document.getElementById('output_user_state').innerHTML = user_state;
+        if (user_state === "watch"){
+            window.open('https://docs.google.com/forms/d/e/1FAIpQLSelWcrzavp_IdiH-jW5-fZB1i6ZZb62eVkRWbjnhqqUqeXuLw/formResponse', '_blank');
+        }
+        if (user_state === "concentration"){
+            window.open('https://docs.google.com/forms/d/e/1FAIpQLScrkHEtmT8Ah1j4HITaj2xUgsa_qpi9WIlPSUshCkp5Qbzwhw/viewform', '_blank');
+        }
+        if (user_state === "game"){
+            window.open('https://docs.google.com/forms/d/e/1FAIpQLSe4UvuTz0aVDQo5SD2wjRIgPRxib4yz3M18a9MoaWlXNah2EQ/formResponse', '_blank');
+        }
+        if (user_state === "red"){
+            window.open('red.html', '_blank');
+        }
+        if (user_state === "blue"){
+            window.open('blue.html', '_blank');
+        }
+    }
+
+    function setLimit1() {
+        setLimit = limit60
+        viewLimit.innerHTML = "1分"
+    }
+
+    function setLimit5() {
+        setLimit = limit5
+        viewLimit.innerHTML = "5分"
+    }
+
+    function setLimit10() {
+        setLimit = limit10
+        viewLimit.innerHTML = "10分"
+    }
+
+    function setLimitNull() {
+        setLimit = null
+        viewLimit.innerHTML = "自分でstop"
+    }
+
+    function setThreshold() {
+        setLimit = limit1
+        viewLimit.innerHTML = "閾値の動画を取る"
+    }
+
+    function counter() {
+        time += 1;
+        timerId.innerHTML = "time: " + time
+        if (time === setLimit) {
+            stopButton()
+
+        }
+    }
+
+    function subCounter() {
+        subTime += 1
+        subTimerId.innerHTML = "subTime: " + subTime
+        if (subTime === 3) {
+            startButton()
+        }
+    }
+
+    function subStartTimer() {
+        subCreateClock = setInterval(subCounter, 1000);
+    }
+
+    function startTimer() {
+        createClock = setInterval(counter, 1000);
+    }
+
+    function stopTimer() {
+        clearInterval(createClock)
+    }
+
+    function stateState() {
+
+        if (startFrag === true) {
+            flag.innerHTML = 'state: 録画中'
+        } else {
+            flag.innerHTML = 'state: stop'
+        }
+    }
+
+    function subStartButton() {
+        dis.disabled = true;
+        subStartTimer()
+        flag.innerHTML = 'state: 3秒後に録画を開始します'
+
+    }
+
+    function startButton() {
+        clearInterval(subCreateClock)
+        mediaRecorder.start()
+        subTime = 0
+        startFrag = true
+        stateState()
+        startTimer()
+    }
+
+    function stopButton() {
+        dis.disabled = false;
+        mediaRecorder.stop()
+        startFrag = false
+        stateState()
+        stopTimer()
+        time = 0
+    }
+
+    function initVideo() {
+        videoInput = document.getElementById('video');
+        console.log('キャプチャスタート')
+        w = videoInput.offsetWidth;
+        console.log(w)
+        h = videoInput.offsetHeight;
+        console.log(h)
+        videoInput.setAttribute("width", w)
+        videoInput.setAttribute("height", h)
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({video: {width: 1280, height: 720}}).then(stream => {
+                let options = {
+                    videoBitesPerSecond: 2500000,
+                    mimeType: 'video/webm;codecs=h264'
+                }
+                mediaRecorder = new MediaRecorder(stream, options)
+
+                mediaRecorder.ondataavailable = function (e) {
+                    let blob = new Blob([e.data], {type: 'video/mp4'})
+                    let audio = document.createElement('audio');
+                    audio.setAttribute("width", w)
+                    audio.setAttribute("height", h)
+                    let audioUrl = window.URL.createObjectURL(blob)
+
+                    //this.$store.state.movieFile = e.data // errorでた
+                    audio.src = audioUrl
+                    let a = document.createElement('a');
+                    document.body.appendChild(a);
+                    a.style = 'display: none';
+                    a.href = audioUrl;
+                    a.download = username + '_' + user_state + '.mp4';
+                    a.click();
+                    window.URL.revokeObjectURL(audioUrl);
+                }
+                videoInput.srcObject = stream
+                videoInput.play()
+            })
+        }
+    }
+
+</script>
+<style>
+
+
+    .parent {
+
+    }
+
+    .yoko li {
+        float: left;
+        list-style: none;
+        margin: 30px;
+    }
+
+</style>
+</html>

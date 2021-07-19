@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+
+<div class="parent">
+    <h1>10秒たつと自動で動画がダウンロードされます</h1>
+    <video ref="video" id="video" width="400" height="300" autoplay muted playsinline></video>
+</div>
+
+
+<div class="parent-button">
+    <button onclick="startButton()">start</button>
+</div>
+
+<p id="state"></p>
+<p id="timer"></p>
+<p id="limit"></p>
+
+</body>
+<script>
+    let videoInput
+    let w
+    let h
+    let cnt
+    let mediaRecorder
+    let blob
+    let startFrag = false
+    let createClock
+    let time = 0
+    let timerId = document.getElementById('timer')
+    const limit5 = 300
+    const limit10 = 600
+    const limit10s = 10
+    const limit60 = 60
+    const limit180 = 180
+
+    let setLimit = null
+    let viewLimit = document.getElementById('limit')
+
+    window.onload = function () {
+        initVideo()
+        timerId.innerHTML = time
+        viewLimit.innerHTML = "自分でstop"
+    }
+
+    function setLimit1() {
+        setLimit = limit60
+        viewLimit.innerHTML = "1分"
+    }
+
+    function setLimit5() {
+        setLimit = limit5
+        viewLimit.innerHTML = "5分"
+    }
+
+    function setLimit10s() {
+        setLimit = limit10s
+        viewLimit.innerHTML = "10秒"
+    }
+
+    function setLimit180() {
+        setLimit = limit180
+        viewLimit.innerHTML = "3分"
+    }
+
+    function setLimitNull() {
+        setLimit = null
+        viewLimit.innerHTML = "自分でstop"
+    }
+
+    function setThreshold() {
+        setLimit = limit1
+        viewLimit.innerHTML = "閾値の動画を取る"
+    }
+
+    function counter() {
+        time += 1;
+        timerId.innerHTML = time
+        if (time === setLimit) {
+            stopButton()
+        }
+    }
+
+    function startTimer() {
+        createClock = setInterval(counter, 1000);
+    }
+
+    function stopTimer() {
+        clearInterval(createClock)
+    }
+
+    function stateState() {
+        let flag = document.getElementById('state')
+        if (startFrag === true) {
+            flag.innerHTML = '録画中'
+        } else {
+            flag.innerHTML = ''
+        }
+    }
+
+    function startButton() {
+        setLimit10s()
+        mediaRecorder.start()
+        startFrag = true
+        stateState()
+        startTimer()
+    }
+
+    function stopButton() {
+        mediaRecorder.stop()
+        startFrag = false
+        stateState()
+        stopTimer()
+        time = 0
+    }
+
+    function initVideo() {
+        videoInput = document.getElementById('video');
+        console.log('キャプチャスタート')
+        w = videoInput.offsetWidth;
+        h = videoInput.offsetHeight;
+
+        videoInput.setAttribute("width", w)
+        videoInput.setAttribute("height", h)
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({video: true}).then(stream => {
+                let options = {
+                    videoBitesPerSecond: 2500000,
+                    mimeType: 'video/webm;codecs=h264'
+                }
+                mediaRecorder = new MediaRecorder(stream, options)
+
+                mediaRecorder.ondataavailable = function (e) {
+                    let blob = new Blob([e.data], {type: 'video/mp4'})
+                    let audio = document.createElement('audio');
+
+                    audio.setAttribute("width", this.w)
+                    audio.setAttribute("height", this.h)
+                    let audioUrl = window.URL.createObjectURL(blob)
+                    //this.$store.state.movieFile = e.data // errorでた
+                    audio.src = audioUrl
+                    let a = document.createElement('a');
+                    document.body.appendChild(a);
+                    a.style = 'display: none';
+                    a.href = audioUrl;
+                    a.download = 'test.mp4';
+                    a.click();
+                    window.URL.revokeObjectURL(audioUrl);
+                }
+                videoInput.srcObject = stream
+                videoInput.play()
+            })
+        }
+    }
+
+</script>
+<style>
+
+
+
+
+    /*.parent canvas{*/
+    /*    position: absolute;*/
+    /*}*/
+
+</style>
+</html>
